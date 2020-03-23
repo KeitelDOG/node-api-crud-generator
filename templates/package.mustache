@@ -1,0 +1,45 @@
+{
+  "name": "{{package}}",
+  "version": "1.0.0",
+  "description": "{{description}}",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server",
+    "start:dev": "nodemon server",
+    "knex:migrate:make": "npx knex --knexfile knexfile.js -x js migrate:make",
+    "knex:migrate:latest": "npx knex --knexfile knexfile.js migrate:latest",
+    "knex:migrate:rollback": "npx knex --knexfile knexfile.js migrate:rollback",
+    "knex:seed:make": "npx knex --knexfile knexfile.js seed:make",
+    "knex:seed:run": "npx knex --knexfile knexfile.js seed:run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+{{{repos}}}.git"
+  },
+  "author": "{{author}}",
+  "license": "ISC",
+  "bugs": {
+    "url": "{{{repos}}}/issues"
+  },
+  "homepage": "{{{repos}}}/#readme",
+  "dependencies": {
+    "@types/knex": "^0.15.2",
+    "axios": "^0.18.0",
+    "bcrypt": "^3.0.7",
+    "bookshelf": "^0.15.1",
+    "bookshelf-virtuals-plugin": "^0.1.1",
+    "core-js": "^3.6.4",
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "express": "^4.16.4",
+    "faker": "^4.1.0",
+    "form-data": "^3.0.0",
+    "jsonwebtoken": "^8.5.1",
+    "knex": "^0.15.1",
+    "multer": "^1.4.1",
+    "mysql": "^2.16.0",
+    "node-schedule": "^1.3.2",
+    "nodemon": "^2.0.1",
+    "path": "^0.12.7"
+  }
+}

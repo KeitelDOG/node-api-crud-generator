@@ -1,0 +1,14 @@
+
+exports.up = function(knex, Promise) {
+  return knex.schema.createTable('{{tableName}}', function(table) {
+    table.increments('id').primary();
+{{{fields}}}
+    table.dateTime('created_at').defaultTo(knex.fn.now());
+    table.dateTime('updated_at').defaultTo(knex.fn.now());
+{{{foreigns}}}
+  });
+};
+
+exports.down = function(knex, Promise) {
+  return knex.schema.dropTable('{{tableName}}');
+};

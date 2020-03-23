@@ -1,0 +1,52 @@
+const {{Entity}} = require('../../models/{{Entity}}');
+const Controller = require('../Controller');
+const Auth = require('./Auth');
+
+class {{Entity}}Controller extends Controller {
+  constructor() {
+    super();
+    this.model = {{Entity}};
+  }
+
+{{{actions}}}
+  insert(req, res) {
+    let data = req.body;
+    data.updated_by = req.auth.id;
+
+    Auth.hashPass(data.{{secret}}, ({{secret}})=>{
+      data.{{secret}} = {{secret}};
+      const model = new this.model();
+      model.insert(data, (error, {{entity}})  => {
+        if (error) {
+          res.status(403).send({
+            message: "Can't create the {{entity}}",
+            error
+          });
+        } else {
+          res.status(200).send({{entity}});
+        }
+      });
+    });
+  };
+
+  update(req, res) {
+    // remove {{secret}} and {{entity}} for body here
+    let data = req.body;
+    data.updated_by = req.auth.id;
+    delete data.{{secret}};
+    delete data.{{identification}};
+
+    const model = new this.model();
+    model.update(req.params.id, data, (error, result) => {
+      if (error) {
+        res.status(400).send({ message: "Error can't update {{entity}}" });
+      }
+      else {
+        res.status(200).send(result);
+      }
+    });
+  };
+
+}
+
+module.exports = {{Entity}}Controller;

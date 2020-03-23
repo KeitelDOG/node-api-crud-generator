@@ -1,0 +1,14 @@
+var faker = require('faker/locale/en');
+
+exports.seed = function(knex, Promise) {
+  // Inserts seed entries
+  let models = [];
+
+  for (let i = 0; i < {{seedAmount}}; i++) {
+    models.push({
+{{{fieldValues}}}
+    });
+  }
+
+  return knex('{{tableName}}').insert(models);
+};

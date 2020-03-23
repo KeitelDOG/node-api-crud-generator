@@ -1,0 +1,29 @@
+var express = require('express');
+var router = express.Router();
+const multer = require('multer');
+
+// token authorization
+const { verifyToken } = require('../../../middlewares/authorization');
+
+// Declare Controllers
+// Auth Controller
+const Auth = require('../../../controllers/v1/Auth');
+// Other Controllers
+{{{controllers}}}
+
+// Instanciate Controllers
+{{{controllerInstances}}}
+
+router.get('/', function(req, res) {
+  console.log('{{appName}} API v1');
+  res
+    .status(200)
+    .send({ status: 'Success', api: 'Version 1' })
+});
+
+// endpoint for authentication
+router.post('/signup', Auth.signup);
+router.post('/signin', Auth.signin);
+
+{{{endpoints}}}
+module.exports = router;

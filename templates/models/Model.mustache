@@ -1,0 +1,9 @@
+const bookshelf = require('../../database/config');
+
+var {{Entity}} = bookshelf.Model.extend({
+  tableName: '{{tableName}}',
+  hasTimeStamps: true,
+{{{relations}}}
+});
+
+module.exports = bookshelf.model('{{Entity}}', {{Entity}});
