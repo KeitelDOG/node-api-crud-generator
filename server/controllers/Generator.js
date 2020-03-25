@@ -512,12 +512,19 @@ class GeneratorController {
 
   generateManyMigration(entity1, entity2) {
     // Create a Many-To-Many table for both tables
-    let tableName = this.toTableCase(entity1.name) + '_' + this.toTableCase(entity2.name);
+    let tb1 = this.toTableCase(entity1.plural);
+    let tb2 = this.toTableCase(entity2.plural);
+    let tableName;
 
-    let reverseTableName = this.toTableCase(entity2.name) + '_' + this.toTableCase(entity1.name);
+    // tables will be placed in alphabetic order
+    if (tb1 < tb2) {
+      tableName = tb1 + '_' + tb2;
+    } else {
+      tableName = tb2 + '_' + tb1;
+    }
 
     // Abort if a many-to-many migration already exists between those 2 entities
-    if (this.belongsToManyTrack.includes(tableName) || this.belongsToManyTrack.includes(reverseTableName)) {
+    if (this.belongsToManyTrack.includes(tableName)) {
       return;
     }
 
@@ -557,9 +564,12 @@ class GeneratorController {
   }
 
   generateManySeed(entity1, entity2) {
-
     // Create a Many-To-Many table for both tables
-    let tableName = this.toTableCase(entity1.name) + '_' + this.toTableCase(entity2.name);
+    let tb1 = this.toTableCase(entity1.plural);
+    let tb2 = this.toTableCase(entity2.plural);
+    let tableName = tb1 + '_' + tb2;
+
+    console.log('many seed');
 
     // Abort if a many-to-many migration already exists between those 2 entities
     if (!this.belongsToManyTrack.includes(tableName)) {

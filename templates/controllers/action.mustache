@@ -1,6 +1,6 @@
   {{method}}(req, res, next) {
-    let attribs = {
+    this.attribs = {
 {{{keyValues}}}
     };
-    super.{{method}}(req, res, next, attribs);
+    super.{{method}}(req, res, next);
   }
