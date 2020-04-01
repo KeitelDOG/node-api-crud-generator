@@ -1,12 +1,13 @@
 class Controller {
 
   constructor() {
-    this.attribs = {};
+    this.attribs;
     this.sort;
     this.where;
   }
 
   all(req, res, next) {
+    this.attribs = this.attrib || {};
     // uncomment to debug
     //this.attribs.debug = true;
 
@@ -37,16 +38,7 @@ class Controller {
         res.status(200).send(models);
       })
       .catch(error => {
-        let details = {};
-        if (error.message) {
-          details.message = error.message;
-          details.stack = error.stack;
-        }
-
-        if (error.response) {
-          details.message = error.response.message;
-        }
-
+        let details = this.getErrorDetails(error);
         res.status(400).send({
           message: "Could not fetch the models from the server",
           error: details,
@@ -55,15 +47,25 @@ class Controller {
   }
 
   find(req, res, next) {
+    this.attribs = this.attrib || {};
+    // uncomment to debug
+    //this.attribs.debug = true;
+
+    this.applyRelations(req.query);
+
     let id = req.params.id;
 
     new this.model({ id })
-      .fetch(attribs)
+      .fetch(this.attribs)
       .then((model) => {
         res.status(200).send(model);
       })
       .catch(error => {
-        res.status(400).send({ message: "Could not retrieve the model from the server" });
+        let details = this.getErrorDetails(error);
+        res.status(400).send({
+          message: "Could not retrieve the model from the server",
+          error: details
+        });
       });
   };
 
@@ -73,10 +75,14 @@ class Controller {
     new this.model()
       .save(data, { method: 'insert' })
       .then((result) => {
-        res.status(200).send(result);
+        res.status(201).send(result);
       })
       .catch(error => {
-        res.status(400).send({ message: 'Error, Could not insert model' });
+        let details = this.getErrorDetails(error);
+        res.status(400).send({
+          message: "Could not insert model",
+          error: details,
+        });
       });
   };
 
@@ -87,10 +93,14 @@ class Controller {
     new this.model({ id })
       .save(data, { patch: true })
       .then((result) => {
-        res.status(200).send(result);
+        res.status(201).send(result);
       })
       .catch(error => {
-        res.status(400).send({ message: "Error, could not update model" });
+        let details = this.getErrorDetails(error);
+        res.status(400).send({
+          message: "Could not update model",
+          error: details,
+        });
       });
   };
 
@@ -100,10 +110,14 @@ class Controller {
     new this.model({ id })
       .destroy()
       .then((model) => {
-        res.status(200).send({ message: "Model deleted" });
+        res.status(201).send({ message: "Model deleted" });
       })
       .catch(error => {
-        res.status(400).send({ result: "Could not delete the model" });
+        let details = this.getErrorDetails(error);
+        res.status(400).send({
+          message: "Could not delete the model",
+          error: details,
+        });
       });
   };
 
@@ -115,7 +129,7 @@ class Controller {
 
     // Multiple sorting, support only Where... AND... , but not OR yet
     // ?where=first_name[.]=[.]Keitel,last_name[.]like[.]Jovin
-    let parts = query.where.split(',');
+    let parts = query.where.split('[,]');
     parts.forEach(part => {
       let trio = part.split('[.]');
       if (trio.length === 3) {
@@ -169,19 +183,32 @@ class Controller {
     }
 
     // remove all relations if false
-    console.log('relations', query.relations);
     if (query.relations === 'false') {
       delete this.attribs.withRelated;
       return;
     }
 
-    // Multiple sorting, support only Where... AND... , but not OR yet
-    // ?where=first_name[.]=[.]Keitel,last_name[.]like[.]Jovin
-    let relations = query.where.split(',');
+    // Cascade Relation support
+    // ?relations=user,posts.comments
+    let relations = query.relations.split(',');
     relations.forEach(relation => {
       this.attribs.withRelated = this.attribs.withRelated || [];
       this.attribs.withRelated.push(relation);
     });
+  }
+
+  getErrorDetails(error) {
+    let details = {};
+    if (error.message) {
+      details.message = error.message;
+      details.stack = error.stack;
+    }
+
+    if (error.response && !details.message) {
+      details.message = error.response.message;
+    }
+
+    return details;
   }
 }
 

@@ -2,7 +2,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const Mustache = require('mustache');
 const moment = require('moment');
-const crud = require('../../crud.js');
+const crud = require('../../crud');
 
 class GeneratorController {
 
@@ -64,6 +64,12 @@ class GeneratorController {
     fs.copySync(
       path.join(__dirname, `../../structure`),
       path.join(__dirname, `../../output`)
+    );
+
+    // Copy the crud directory to project
+    fs.copySync(
+      path.join(__dirname, `../../crud`),
+      path.join(__dirname, `../../output/crud`)
     );
   }
 
@@ -197,27 +203,47 @@ class GeneratorController {
 
   generateController(entity) {
 
-    // Special Controller for Authentication
+    // Special actions for Authentication Controller
+    let authActions = '';
+    let authImport = '';
+
     if (entity.hasOwnProperty('auth')) {
-      let readPath = path.join(__dirname, '../../templates/controllers/Auth.mustache');
+      // for controllers import
+      authImport = `const Auth = require('./Auth');`;
+
+      // Generate Auth Actions methods code to add into the Controller at the end in the templates
+      let readPath = path.join(__dirname, '../../templates/controllers/authActions.mustache');
       let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
       //console.log('template', template);
 
-      let rendered = Mustache.render(
+      authActions = Mustache.render(
         template,
         {
-          Entity: entity.name,
           entity: this.toCamelCase(entity.name),
           identification: entity.auth[0],
           secret: entity.auth[1],
         }
       );
 
-      let writePath = path.join(__dirname, `../../output/server/controllers/v1/${entity.name}.js`);
 
-      fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
+      // Save Auth File
+      let authReadPath = path.join(__dirname, '../../templates/controllers/Auth.mustache');
+      let authTemplate = fs.readFileSync(authReadPath, { encoding: 'utf-8' });
 
-      return;
+      let authRendered = Mustache.render(
+        authTemplate,
+        {
+          Entity: entity.name,
+          entity: this.toCamelCase(entity.name),
+          Identification: this.fieldToCamelUppercase(entity.auth[0]),
+          identification: entity.auth[0],
+          secret: entity.auth[1],
+        }
+      );
+
+      let authWritePath = path.join(__dirname, `../../output/server/controllers/v1/Auth.js`);
+
+      fs.writeFileSync(authWritePath, authRendered, { encoding: 'utf-8' });
     }
 
     // For Normal Controller
@@ -249,6 +275,8 @@ class GeneratorController {
       {
         Entity: entity.name,
         actions,
+        authImport,
+        authActions,
       }
     );
 
@@ -389,11 +417,20 @@ class GeneratorController {
 
     let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
 
+    let relationName;
+    if (relationFunction === 'belongsTo') {
+      relationName = this.toCamelCase(entity.name);
+    } else if (relationFunction === 'hasMany') {
+      relationName = this.toCamelCase(entity.plural);
+    } else if (relationFunction === 'belongsToMany') {
+      relationName = 'many' + entity.plural;
+    }
+
     return Mustache.render(
       template,
       {
         Entity: entity.name,
-        relationName: relationFunction === 'belongsTo' ? this.toCamelCase(entity.name) : this.toCamelCase(entity.plural),
+        relationName,
         relationFunction,
       }
     );
@@ -407,7 +444,11 @@ class GeneratorController {
 
     // Controllers declaration
     let controllers = '';
+    let auth = false;
     this.entities.forEach(entity => {
+      if (entity.hasOwnProperty('auth')) {
+        auth = true;
+      }
       controllers += this.generateControllerDeclaration(entity);
     });
 
@@ -423,13 +464,23 @@ class GeneratorController {
       endpoints += this.generateEndpoints(entity);
     });
 
+    // Put Auth codes in Route V1
+    let authController = '';
+    let authRoutes = '';
+    if (auth) {
+      authController = `const Auth = require('../../../controllers/v1/Auth');`;
+      authRoutes = `router.post('/signup', Auth.signup);\nrouter.post('/signin', Auth.signin);`;
+    }
+
     let rendered = Mustache.render(
       template,
       {
         appName: crud.app,
         controllers,
         controllerInstances,
-        endpoints
+        endpoints,
+        authController,
+        authRoutes
       }
     );
 
@@ -569,8 +620,6 @@ class GeneratorController {
     let tb2 = this.toTableCase(entity2.plural);
     let tableName = tb1 + '_' + tb2;
 
-    console.log('many seed');
-
     // Abort if a many-to-many migration already exists between those 2 entities
     if (!this.belongsToManyTrack.includes(tableName)) {
       return;
@@ -624,6 +673,7 @@ class GeneratorController {
   }
 
   toTableCase(string) {
+    // form LocationTypes to location_types
     return string.split('').reduce((acc, letter, ind) => {
       if (letter === letter.toLowerCase() || ind === 0) {
         return acc + letter.toLowerCase();
@@ -634,6 +684,7 @@ class GeneratorController {
   }
 
   toDashCase(string) {
+    // form LocationTypes to location-types
     return string.split('').reduce((acc, letter, ind) => {
       if (letter === letter.toLowerCase() || ind === 0) {
         return acc + letter.toLowerCase();
@@ -644,7 +695,15 @@ class GeneratorController {
   }
 
   toCamelCase(string) {
+    // form LocationType to locationType
     return string[0].toLowerCase() + string.slice(1);
+  }
+
+  fieldToCamelUppercase(string) {
+    // form location_type to LocationType
+    return string.split('_').map(word => {
+      return word[0].toUpperCase() + word.slice(1);
+    }).join('');
   }
 
 }

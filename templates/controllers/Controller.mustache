@@ -1,13 +1,14 @@
 const {{Entity}} = require('../../models/{{Entity}}');
 const Controller = require('../Controller');
+{{{authImport}}}
 
 class {{Entity}}Controller extends Controller {
   constructor() {
     super();
     this.model = {{Entity}};
   }
-
 {{{actions}}}
+{{{authActions}}}
 }
 
 module.exports = {{Entity}}Controller;
