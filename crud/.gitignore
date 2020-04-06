@@ -1,0 +1,5 @@
+*
+!.gitignore
+!entities
+!entities.example
+!index.example.js

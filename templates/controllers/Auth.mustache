@@ -1,52 +1,142 @@
-const {{Entity}} = require('../../models/{{Entity}}');
+const {{Entity}} = require('../../models/{{Entity}}.js');
 const Controller = require('../Controller');
-const Auth = require('./Auth');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
-class {{Entity}}Controller extends Controller {
+
+class Auth extends Controller {
   constructor() {
     super();
-    this.model = {{Entity}};
+    this.round = 10;
   }
 
-{{{actions}}}
-  insert(req, res) {
-    let data = req.body;
-    data.updated_by = req.auth.id;
-
-    Auth.hashPass(data.{{secret}}, ({{secret}})=>{
-      data.{{secret}} = {{secret}};
-      const model = new this.model();
-      model.insert(data, (error, {{entity}})  => {
+  genHash({{secret}}, salt) {
+    return new Promise((resolve, reject) => {
+      bcrypt.hash({{secret}}, salt, (error, hash) => {
         if (error) {
-          res.status(403).send({
-            message: "Can't create the {{entity}}",
-            error
-          });
+          reject(error);
         } else {
-          res.status(200).send({{entity}});
+          resolve(hash);
         }
       });
     });
-  };
+  }
 
-  update(req, res) {
-    // remove {{secret}} and {{entity}} for body here
-    let data = req.body;
-    data.updated_by = req.auth.id;
-    delete data.{{secret}};
-    delete data.{{identification}};
-
-    const model = new this.model();
-    model.update(req.params.id, data, (error, result) => {
-      if (error) {
-        res.status(400).send({ message: "Error can't update {{entity}}" });
-      }
-      else {
-        res.status(200).send(result);
-      }
+  genSalt() {
+    return new Promise((resolve, reject) => {
+      bcrypt.genSalt(this.round, (error, salt) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(salt);
+        }
+      });
     });
-  };
+  }
 
+  compare(data, encrypted) {
+    return new Promise((resolve, reject) => {
+      bcrypt.compare(data, encrypted, (error, matched) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(matched);
+        }
+      });
+    });
+  }
+
+  // Find auth model from current token
+  auth(req, res) {
+    return new {{Entity}}({ id: req.auth.id })
+      .fetch()
+      .then({{entity}} => {
+        res.status(200).send({{entity}});
+      })
+      .catch(error => {
+        let details = this.getErrorDetails(error);
+        res.status(400).send({
+          message: 'Could not retrieve Authenticated {{entity}}',
+          error: details,
+        });
+      });
+  }
+
+  // Signup method for {{entity}}
+  signup(req, res) {
+    let data = req.body;
+
+    this.genSalt()
+      .then(salt => {
+        return this.genHash(data.{{secret}}, salt);
+      })
+      .then(hash => {
+        data.{{secret}} = hash;
+        return new {{Entity}}()
+          .save(data, { method: 'insert' })
+          .then(result => {
+            return new {{Entity}}({ id: result.id })
+              .fetch()
+              .then({{entity}} => {
+                // Change code below to skip token on registration
+                let token = jwt.sign({{entity}}.toJSON(), process.env.JWT_SECRET, { expiresIn: '720h' });
+                res.status(200).send({ token, {{entity}} });
+              });
+          });
+      })
+      .catch(error => {
+        let details = this.getErrorDetails(error);
+        res.status(400).send({
+          message: 'Could not signup the {{entity}}',
+          error: details
+        });
+      });
+  }
+
+  // Create {{entity}} signin process
+  signin(req, res) {
+    let data = req.body;
+
+    new {{Entity}}({ {{identification}}: data.{{identification}} })
+      .fetch()
+      .then({{entity}} => {
+        if (!{{entity}}) {
+          throw new Error('Wrong {{entity}} credentials');
+        }
+        return {{entity}};
+      })
+      .then({{entity}} => {
+        return this.compare(data.{{secret}}, {{entity}}.get('{{secret}}'))
+          .then(matched => {
+            if (!matched) {
+              throw new Error('Wrong {{entity}} credentials');
+            }
+          })
+          .then(() => {
+            let token = jwt.sign({{entity}}.toJSON(), process.env.JWT_SECRET, { expiresIn: '720h' });
+            res.status(200).send({ token, {{entity}} });
+          }, error => {
+            let details = this.getErrorDetails(error);
+            res.status(400).send({
+              message: error.message,
+              error: details
+            });
+          });
+      }, error => {
+        let details = this.getErrorDetails(error);
+        res.status(400).send({
+          message: error.message,
+          error: details
+        });
+      })
+      .catch(error => {
+        let details = this.getErrorDetails(error);
+        res.status(400).send({
+          message: 'Could not signin the {{entity}}',
+          error: details
+        });
+      });
+  }
 }
 
-module.exports = {{Entity}}Controller;
+module.exports = Auth;

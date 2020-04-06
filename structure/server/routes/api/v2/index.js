@@ -7,10 +7,12 @@ const { verifyToken } = require('../../../middlewares/authorization');
 
 // Declare Controllers
 // Auth Controller
-//const Auth = require('../../../controllers/v2/Auth');
+
 // Other Controllers
+const TestController = require('../../../controllers/v2/Test');
 
 // Instanciate Controllers
+const test = new TestController();
 
 
 router.get('/', function(req, res) {
@@ -20,7 +22,10 @@ router.get('/', function(req, res) {
     .send({ status: 'Success', api: 'Version 2' })
 });
 
-// endpoints
+// endpoint for authentication
+
+// endpoint for testing API Flow with Versions, should return api version 2
+router.get('/tests', test.check.bind(test));
 
 
 module.exports = router;

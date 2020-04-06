@@ -10,4 +10,3 @@ output/
 # Environment
 .env
 .DS_Store
-crud.js
