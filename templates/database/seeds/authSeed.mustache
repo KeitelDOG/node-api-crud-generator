@@ -1,0 +1,30 @@
+var faker = require('faker/locale/en');
+const AuthController = require('../../server/controllers/v1/Auth');
+
+exports.seed = function(knex, Promise) {
+  // Inserts seed entries
+  let models = [];
+  const auth = new AuthController();
+
+  return auth.genSalt().then(salt => auth.genHash('Pass1234', salt)).then(hash => {
+    // push a first record with a default {{identification}} to signin fot token
+    models.push(
+      {
+{{{fieldValues}}}        {{identification}}: `{{defaultAuth}}`
+      }
+    );
+
+    for (let i = 0; i < ({{seedAmount}} - 1); i++) {
+      models.push({
+{{{fieldValues}}}
+      });
+    }
+
+    return knex('{{tableName}}').insert(models);
+  })
+  .catch(error => {
+    console.log('{{tableName}} seeds error', error);
+  });
+};
+
+

@@ -7,7 +7,7 @@ class Controller {
   }
 
   all(req, res, next) {
-    this.attribs = this.attrib || {};
+    this.attribs = this.attribs || {};
     // uncomment to debug
     //this.attribs.debug = true;
 
@@ -40,14 +40,14 @@ class Controller {
       .catch(error => {
         let details = this.getErrorDetails(error);
         res.status(400).send({
-          message: "Could not fetch the models from the server",
+          message: 'Could not fetch the models from the server',
           error: details,
         });
       });
   }
 
   find(req, res, next) {
-    this.attribs = this.attrib || {};
+    this.attribs = this.attribs || {};
     // uncomment to debug
     //this.attribs.debug = true;
 
@@ -63,7 +63,7 @@ class Controller {
       .catch(error => {
         let details = this.getErrorDetails(error);
         res.status(400).send({
-          message: "Could not retrieve the model from the server",
+          message: 'Could not retrieve the model from the server',
           error: details
         });
       });
@@ -80,7 +80,7 @@ class Controller {
       .catch(error => {
         let details = this.getErrorDetails(error);
         res.status(400).send({
-          message: "Could not insert model",
+          message: 'Could not insert model',
           error: details,
         });
       });
@@ -98,7 +98,7 @@ class Controller {
       .catch(error => {
         let details = this.getErrorDetails(error);
         res.status(400).send({
-          message: "Could not update model",
+          message: 'Could not update model',
           error: details,
         });
       });
@@ -110,12 +110,12 @@ class Controller {
     new this.model({ id })
       .destroy()
       .then((model) => {
-        res.status(201).send({ message: "Model deleted" });
+        res.status(201).send({ message: 'Model deleted' });
       })
       .catch(error => {
         let details = this.getErrorDetails(error);
         res.status(400).send({
-          message: "Could not delete the model",
+          message: 'Could not delete the model',
           error: details,
         });
       });
@@ -136,7 +136,7 @@ class Controller {
         this.where.push({
           column: trio[0],
           operand: trio[1],
-          // surround with percentage if operand is "like"
+          // surround with percentage if operand is 'like'
           value: trio[1] === 'like' ? '%' + trio[2] + '%' : trio[2]
         });
       } else if (trio.length === 2) {

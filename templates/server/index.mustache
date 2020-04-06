@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 
 const apiRoute = require('./routes/api');
+const webRoute = require('./routes/web');
 const Scheduler = require('./scheduler');
 
 const port = process.env.APP_PORT || 3500;
@@ -34,6 +35,8 @@ app.get('/', function(req, res) {
 // API ENDPOINTS --
 app.use('/api', apiRoute);
 
+// WEB ENDPOINTS --
+app.use('/', webRoute);
 
 app.listen(port, function() {
   console.log(`{{app}} Server is listening to port ${port}`);

@@ -7,18 +7,6 @@ const { verifyToken } = require('../../../middlewares/authorization');
 
 // Declare Controllers
 // Auth Controller
-//const Auth = require('../../../controllers/v2/Auth');
-// Other Controllers
-var express = require('express');
-var router = express.Router();
-const multer = require('multer');
-
-// token authorization
-const { verifyToken } = require('../../../middlewares/authorization');
-
-// Declare Controllers
-// Auth Controller
-{{{authController}}}
 
 // Other Controllers
 const TestController = require('../../../controllers/v2/Test');
