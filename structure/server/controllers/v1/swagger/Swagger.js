@@ -353,8 +353,8 @@ class Swagger {
       });
     }
     if (entity.relations.belongsToMany) {
-      entity.relations.belongsToMany.forEach(relation => {
-        let relEntity = this.lookupEntity(relation);
+      entity.relations.belongsToMany.forEach(objRelation => {
+        let relEntity = this.lookupEntity(objRelation.entity);
         let relationName = 'many' + relEntity.plural;
         manyToManys.push(relationName);
       });

@@ -47,7 +47,30 @@ module.exports = {
       ],
       relations: {
         hasMany: ['Post', 'Comment'],
-        belongsToMany: ['Post', 'Comment'], // mentioned users
+        belongsToMany: [
+          {
+            entity: 'Post', // mentioned users
+            fields: [
+              {
+                name: 'mention_time', // just to illustrate many-to-many (pivot) field
+                type: 'datetime',
+                nullable: false,
+                faker: 'date.recent',
+              },
+            ]
+          },
+          {
+            entity: 'Comment', // mentioned users
+            fields: [
+              {
+                name: 'mention_time', // just to illustrate many-to-many (pivot) field
+                type: 'datetime',
+                nullable: false,
+                faker: 'date.recent',
+              },
+            ]
+          }
+        ],
       }
     },
     Post,
