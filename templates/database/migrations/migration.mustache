@@ -3,8 +3,8 @@ exports.up = function(knex, Promise) {
   return knex.schema.createTable('{{tableName}}', function(table) {
     table.increments('id').primary();
 {{{fields}}}
-    table.dateTime('created_at').defaultTo(knex.fn.now());
-    table.dateTime('updated_at').defaultTo(knex.fn.now());
+    table.datetime('created_at').defaultTo(knex.fn.now());
+    table.datetime('updated_at').defaultTo(knex.fn.now());
 {{{foreigns}}}
   });
 };

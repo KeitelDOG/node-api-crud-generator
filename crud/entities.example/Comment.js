@@ -13,6 +13,8 @@ module.exports = {
   ],
   relations: {
     belongsTo: ['User', 'Post'], // User: owner
-    belongsToMany: ['User'], // User: mentioned users
+    belongsToMany: [
+      { entity: 'User' }, // User: mentioned users
+    ],
   }
 };

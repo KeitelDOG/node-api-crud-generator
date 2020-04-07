@@ -9,6 +9,7 @@ class GeneratorController {
   constructor() {
     this.entities = crud.entities;
     this.belongsToManyTrack = [];
+    this.belongsToManySeedTrack = [];
     this.migrationMoment;
     this.seedNumber;
   }
@@ -137,79 +138,107 @@ class GeneratorController {
     //console.log('template', template);
 
     // ADD FIELDS
-    let fields = '';
+    let fieldsCode = '';
 
     // 1-To-Many foreign fields
     if (entity.hasOwnProperty('relations') && entity.relations.belongsTo) {
       entity.relations.belongsTo.forEach(relation => {
         let relEntity = this.lookupEntity(relation);
 
-        fields += `    table.integer('${this.toCamelCase(relEntity.name)}_id').unsigned();\n`;
+        fieldsCode += `    table.integer('${this.toCamelCase(relEntity.name)}_id').unsigned();\n`;
       });
     }
 
     // Normal fields
     entity.fields = entity.fields || [];
-    entity.fields.forEach(field => {
-      // Normal table code
-      if (field.type === 'string') {
-        // String field
-        field.length = field.length || 255;
-        fields += `    table.string('${field.name}', ${field.length})`;
-      } else if (field.type === 'decimal') {
-        field.precision = field.precision || 18;
-        field.scale = field.scale || 2;
-        fields += `    table.decimal('${field.name}', ${field.precision}, ${field.scale})`;
-      } else {
-        fields += `    table.${field.type}('${field.name}')`;
-      }
-
-      // extension functions code
-      if (field.hasOwnProperty('nullable') && field.nullable === false) {
-        fields += `.notNullable()`;
-      }
-      if (field.hasOwnProperty('index') && field.index === true) {
-        fields += `.index()`;
-      }
-      if (field.hasOwnProperty('unique') && field.unique === true) {
-        fields += `.unique()`;
-      }
-
-      if (field.hasOwnProperty('default')) {
-        if (typeof field.default === 'string') {
-          fields += `.default('${field.default}')`;
-        } else {
-          fields += `.default(${field.default})`;
-        }
-      }
-
-      fields += ';\n';
-    });
+    fieldsCode += this.generateMigrationFields(entity.fields);
 
     // ADD foreigns
-    let foreigns = '';
+    let foreignsCode = '';
     if (entity.hasOwnProperty('relations') && entity.relations.belongsTo) {
-      foreigns = '\n';
+      foreignsCode = '\n';
       entity.relations.belongsTo.forEach(relation => {
         let relEntity = this.lookupEntity(relation);
 
-        foreigns += `    table.foreign('${this.toCamelCase(relEntity.name)}_id').references('${this.toCamelCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
+        foreignsCode += `    table.foreign('${this.toCamelCase(relEntity.name)}_id').references('${this.toCamelCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
       });
     }
 
-    let rendered = Mustache.render(template, { tableName, fields, foreigns });
+    let rendered = Mustache.render(template,
+      {
+        tableName,
+        fields: fieldsCode,
+        foreigns: foreignsCode
+      }
+    );
 
     let writePath = path.join(__dirname, `../../output/database/migrations/${startName}_create_table_${tableName}.js`);
 
     fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
   }
 
+  generateMigrationFields(fields) {
+    let fieldsCode = '';
+
+    fields.forEach(field => {
+      // Normal table code
+      if (field.type === 'string') {
+        // String field
+        field.length = field.length || 255;
+        fieldsCode += `    table.string('${field.name}', ${field.length})`;
+      } else if (field.type === 'decimal') {
+        field.precision = field.precision || 18;
+        field.scale = field.scale || 2;
+        fieldsCode += `    table.decimal('${field.name}', ${field.precision}, ${field.scale})`;
+      } else {
+        fieldsCode += `    table.${field.type}('${field.name}')`;
+      }
+
+      // extension functions code
+      if (field.hasOwnProperty('nullable') && field.nullable === false) {
+        fieldsCode += `.notNullable()`;
+      }
+      if (field.hasOwnProperty('index') && field.index === true) {
+        fieldsCode += `.index()`;
+      }
+      if (field.hasOwnProperty('unique') && field.unique === true) {
+        fieldsCode += `.unique()`;
+      }
+
+      if (field.hasOwnProperty('default')) {
+        if (typeof field.default === 'string') {
+          fieldsCode += `.default('${field.default}')`;
+        } else {
+          fieldsCode += `.default(${field.default})`;
+        }
+      }
+
+      fieldsCode += ';\n';
+    });
+
+    return fieldsCode;
+  }
+
   generateManyMigrations(entity) {
     // Many-To-Many foreign fields
+    // Many to Many structure is different
+    // They are Object instead of string
+    /*
+    {
+      entity: 'Entity',
+      fields: [
+        {
+
+        }
+      ]
+    }
+    */
     if (entity.hasOwnProperty('relations') && entity.relations.belongsToMany) {
-      entity.relations.belongsToMany.forEach(relation => {
-        let relEntity = this.lookupEntity(relation);
-        this.generateManyMigration(entity, relEntity);
+      entity.relations.belongsToMany.forEach(objRelation => {
+        let relEntity = this.lookupEntity(objRelation.entity);
+        // pivot fields
+        let fields = objRelation.fields || [];
+        this.generateManyMigration(entity, relEntity, fields);
       });
     }
   }
@@ -361,8 +390,8 @@ class GeneratorController {
       }
 
       if (entity.relations.belongsToMany) {
-        entity.relations.belongsToMany.forEach(relation => {
-          relations += this.generateRelation(relation, 'belongsToMany');
+        entity.relations.belongsToMany.forEach(objRelation => {
+          relations += this.generateRelation(objRelation.entity, 'belongsToMany');
         });
       }
     }
@@ -436,8 +465,35 @@ class GeneratorController {
       defaultAuth = entity.defaultAuth;
     }
 
+    // generate keyValues for normal fields
+    fieldValues += this.generateKeyValuesSeed(entity.fields, entity);
+
+    let rendered = Mustache.render(
+      template,
+      {
+        tableName,
+        seedAmount: entity.seedAmount,
+        identification,
+        defaultAuth,
+        fieldValues
+      }
+    );
+
+    // Start filename to keep order of migration files
+    let startName = (this.seedNumber * 100).toString();
+    this.seedNumber++;
+    startName = '0'.repeat(5 - startName.length) + startName;
+
+    let writePath = path.join(__dirname, `../../output/database/seeds/${startName}_${tableName}.js`);
+
+    fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
+  }
+
+  generateKeyValuesSeed(fields, entity = {}) {
+    let fieldValues = '';
+
     // Create faker key value method for each field
-    entity.fields.forEach(field => {
+    fields.forEach(field => {
 
       // Create hash password for Auth Entity field
       if (entity.hasOwnProperty('auth') && entity.auth[1] === field.name) {
@@ -470,33 +526,17 @@ class GeneratorController {
       }
     });
 
-    let rendered = Mustache.render(
-      template,
-      {
-        tableName,
-        seedAmount: entity.seedAmount,
-        identification,
-        defaultAuth,
-        fieldValues
-      }
-    );
-
-    // Start filename to keep order of migration files
-    let startName = (this.seedNumber * 100).toString();
-    this.seedNumber++;
-    startName = '0'.repeat(5 - startName.length) + startName;
-
-    let writePath = path.join(__dirname, `../../output/database/seeds/${startName}_${tableName}.js`);
-
-    fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
+    return fieldValues;
   }
 
   generateManySeeds(entity, index) {
     // Many-To-Many foreign fields
     if (entity.hasOwnProperty('relations') && entity.relations.belongsToMany) {
-      entity.relations.belongsToMany.forEach(relation => {
-        let relEntity = this.lookupEntity(relation);
-        this.generateManySeed(entity, relEntity);
+      entity.relations.belongsToMany.forEach(objRelation => {
+        let relEntity = this.lookupEntity(objRelation.entity);
+        // pivot fields
+        let fields = objRelation.fields || [];
+        this.generateManySeed(entity, relEntity, fields);
       });
     }
   }
@@ -679,7 +719,7 @@ class GeneratorController {
     );
   }
 
-  generateManyMigration(entity1, entity2) {
+  generateManyMigration(entity1, entity2, fields) {
     // Create a Many-To-Many table for both tables
     let tb1 = this.toTableCase(entity1.plural);
     let tb2 = this.toTableCase(entity2.plural);
@@ -703,21 +743,24 @@ class GeneratorController {
     //console.log('template', template);
 
     // Foreign key fields
-    let fields = '';
+    let fieldsCode = '';
 
-    fields += `    table.integer('${this.toCamelCase(entity1.name)}_id').unsigned();\n`;
-    fields += `    table.integer('${this.toCamelCase(entity2.name)}_id').unsigned();\n`;
+    fieldsCode += `    table.integer('${this.toCamelCase(entity1.name)}_id').unsigned();\n`;
+    fieldsCode += `    table.integer('${this.toCamelCase(entity2.name)}_id').unsigned();\n`;
+
+    // Many-to-Many Fields (pivot) if any
+    fieldsCode += this.generateMigrationFields(fields);
 
     // Foreign key indexes
-    let foreigns = '\n';
-    foreigns += `    table.foreign('${this.toCamelCase(entity1.name)}_id').references('${this.toCamelCase(entity1.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
-    foreigns += `    table.foreign('${this.toCamelCase(entity2.name)}_id').references('${this.toCamelCase(entity2.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
+    let foreignsCode = '\n';
+    foreignsCode += `    table.foreign('${this.toCamelCase(entity1.name)}_id').references('${this.toCamelCase(entity1.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
+    foreignsCode += `    table.foreign('${this.toCamelCase(entity2.name)}_id').references('${this.toCamelCase(entity2.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
 
     let rendered = Mustache.render(template,
       {
         tableName,
-        fields,
-        foreigns
+        fields: fieldsCode,
+        foreigns: foreignsCode
       }
     );
 
@@ -732,14 +775,21 @@ class GeneratorController {
     this.belongsToManyTrack.push(tableName);
   }
 
-  generateManySeed(entity1, entity2) {
-    // Create a Many-To-Many table for both tables
+  generateManySeed(entity1, entity2, fields) {
+    // Create a Many-To-Many seed for both tables
     let tb1 = this.toTableCase(entity1.plural);
     let tb2 = this.toTableCase(entity2.plural);
-    let tableName = tb1 + '_' + tb2;
+    let tableName;
+
+    // tables will be placed in alphabetic order
+    if (tb1 < tb2) {
+      tableName = tb1 + '_' + tb2;
+    } else {
+      tableName = tb2 + '_' + tb1;
+    }
 
     // Abort if a many-to-many migration already exists between those 2 entities
-    if (!this.belongsToManyTrack.includes(tableName)) {
+    if (this.belongsToManySeedTrack.includes(tableName)) {
       return;
     }
 
@@ -758,6 +808,8 @@ class GeneratorController {
     fieldValues += `      ${this.toCamelCase(entity1.name)}_id: ${fk1Value}\n`;
     fieldValues += `      ${this.toCamelCase(entity2.name)}_id: ${fk2Value}\n`;
 
+    // generate keyValues for normal fields
+    fieldValues += this.generateKeyValuesSeed(fields);
 
     let rendered = Mustache.render(
       template,
@@ -776,6 +828,8 @@ class GeneratorController {
     let writePath = path.join(__dirname, `../../output/database/seeds/${startName}_${tableName}.js`);
 
     fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
+
+    this.belongsToManySeedTrack.push(tableName);
   }
 
   lookupEntity(name) {
