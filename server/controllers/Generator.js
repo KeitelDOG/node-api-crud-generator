@@ -145,7 +145,7 @@ class GeneratorController {
       entity.relations.belongsTo.forEach(relation => {
         let relEntity = this.lookupEntity(relation);
 
-        fieldsCode += `    table.integer('${this.toCamelCase(relEntity.name)}_id').unsigned()`;
+        fieldsCode += `    table.integer('${this.toTableCase(relEntity.name)}_id').unsigned()`;
 
         // check if foreign field is from hasOne
         if (relEntity.hasOwnProperty('relations') && relEntity.relations.hasOne) {
@@ -169,7 +169,7 @@ class GeneratorController {
       entity.relations.belongsTo.forEach(relation => {
         let relEntity = this.lookupEntity(relation);
 
-        foreignsCode += `    table.foreign('${this.toCamelCase(relEntity.name)}_id').references('${this.toCamelCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
+        foreignsCode += `    table.foreign('${this.toTableCase(relEntity.name)}_id').references('${this.toTableCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
       });
     }
 
@@ -482,7 +482,7 @@ class GeneratorController {
         }
 
 
-        fieldValues += `      ${this.toCamelCase(relEntity.name)}_id: ${fkValue}\n`;
+        fieldValues += `      ${this.toTableCase(relEntity.name)}_id: ${fkValue}\n`;
       });
     }
 
