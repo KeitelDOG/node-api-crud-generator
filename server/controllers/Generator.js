@@ -140,23 +140,22 @@ class GeneratorController {
     // ADD FIELDS
     let fieldsCode = '';
 
-    // 1-To-Many or 1-To-1 foreign fields
-    if (entity.hasOwnProperty('relations')) {
-      if (entity.relations.belongsTo) {
-        entity.relations.belongsTo.forEach(relation => {
-          let relEntity = this.lookupEntity(relation);
+    // 1-To-Many foreign fields
+    if (entity.hasOwnProperty('relations') && entity.relations.belongsTo) {
+      entity.relations.belongsTo.forEach(relation => {
+        let relEntity = this.lookupEntity(relation);
 
-          fieldsCode += `    table.integer('${this.toCamelCase(relEntity.name)}_id').unsigned();\n`;
-        });
-      }
+        fieldsCode += `    table.integer('${this.toCamelCase(relEntity.name)}_id').unsigned()`;
 
-      if (entity.relations.hasOne) {
-        entity.relations.hasOne.forEach(relation => {
-          let relEntity = this.lookupEntity(relation);
+        // check if foreign field is from hasOne
+        if (relEntity.hasOwnProperty('relations') && relEntity.relations.hasOne) {
+          if (relEntity.relations.hasOne.includes(entity.name)) {
+            fieldsCode += '.unique()';
+          }
+        }
 
-          fieldsCode += `    table.integer('${this.toCamelCase(relEntity.name)}_id').unsigned().unique();\n`;
-        });
-      }
+        fieldsCode += ';\n';
+      });
     }
 
     // Normal fields
@@ -165,23 +164,13 @@ class GeneratorController {
 
     // ADD foreigns
     let foreignsCode = '';
-    if (entity.hasOwnProperty('relations')) {
+    if (entity.hasOwnProperty('relations') && entity.relations.belongsTo) {
       foreignsCode = '\n';
-      if (entity.relations.belongsTo) {
-        entity.relations.belongsTo.forEach(relation => {
-          let relEntity = this.lookupEntity(relation);
+      entity.relations.belongsTo.forEach(relation => {
+        let relEntity = this.lookupEntity(relation);
 
-          foreignsCode += `    table.foreign('${this.toCamelCase(relEntity.name)}_id').references('${this.toCamelCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
-        });
-      }
-
-      if (entity.relations.hasOne) {
-        entity.relations.hasOne.forEach(relation => {
-          let relEntity = this.lookupEntity(relation);
-
-          foreignsCode += `    table.foreign('${this.toCamelCase(relEntity.name)}_id').references('${this.toCamelCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
-        });
-      }
+        foreignsCode += `    table.foreign('${this.toCamelCase(relEntity.name)}_id').references('${this.toCamelCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
+      });
     }
 
     let rendered = Mustache.render(template,
@@ -467,12 +456,8 @@ class GeneratorController {
     entity.fields = entity.fields || [];
 
     // Add fields for foreign keys in the Many side of 1-to-Many or Many-to-Many
-    // Also fields for 1-to-1 relation
-    if (entity.hasOwnProperty('relations')) {
-      let relations = entity.relations.belongsTo || [];
-      relations = relations.concat(entity.relations.hasOne || []);
-
-      relations.forEach(relation => {
+    if (entity.hasOwnProperty('relations') && entity.relations.belongsTo) {
+      entity.relations.belongsTo.forEach(relation => {
         let relEntity = this.lookupEntity(relation);
 
         // Calculate foreign key value from Parent range to respect constraint
