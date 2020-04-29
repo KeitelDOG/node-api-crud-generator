@@ -140,13 +140,23 @@ class GeneratorController {
     // ADD FIELDS
     let fieldsCode = '';
 
-    // 1-To-Many foreign fields
-    if (entity.hasOwnProperty('relations') && entity.relations.belongsTo) {
-      entity.relations.belongsTo.forEach(relation => {
-        let relEntity = this.lookupEntity(relation);
+    // 1-To-Many or 1-To-1 foreign fields
+    if (entity.hasOwnProperty('relations')) {
+      if (entity.relations.belongsTo) {
+        entity.relations.belongsTo.forEach(relation => {
+          let relEntity = this.lookupEntity(relation);
 
-        fieldsCode += `    table.integer('${this.toCamelCase(relEntity.name)}_id').unsigned();\n`;
-      });
+          fieldsCode += `    table.integer('${this.toCamelCase(relEntity.name)}_id').unsigned();\n`;
+        });
+      }
+
+      if (entity.relations.hasOne) {
+        entity.relations.hasOne.forEach(relation => {
+          let relEntity = this.lookupEntity(relation);
+
+          fieldsCode += `    table.integer('${this.toCamelCase(relEntity.name)}_id').unsigned().unique();\n`;
+        });
+      }
     }
 
     // Normal fields
@@ -155,13 +165,23 @@ class GeneratorController {
 
     // ADD foreigns
     let foreignsCode = '';
-    if (entity.hasOwnProperty('relations') && entity.relations.belongsTo) {
+    if (entity.hasOwnProperty('relations')) {
       foreignsCode = '\n';
-      entity.relations.belongsTo.forEach(relation => {
-        let relEntity = this.lookupEntity(relation);
+      if (entity.relations.belongsTo) {
+        entity.relations.belongsTo.forEach(relation => {
+          let relEntity = this.lookupEntity(relation);
 
-        foreignsCode += `    table.foreign('${this.toCamelCase(relEntity.name)}_id').references('${this.toCamelCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
-      });
+          foreignsCode += `    table.foreign('${this.toCamelCase(relEntity.name)}_id').references('${this.toCamelCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
+        });
+      }
+
+      if (entity.relations.hasOne) {
+        entity.relations.hasOne.forEach(relation => {
+          let relEntity = this.lookupEntity(relation);
+
+          foreignsCode += `    table.foreign('${this.toCamelCase(relEntity.name)}_id').references('${this.toCamelCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
+        });
+      }
     }
 
     let rendered = Mustache.render(template,
@@ -313,17 +333,28 @@ class GeneratorController {
     let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
     //console.log('template', template);
 
-    // Actions for autoloading parent model
+    // Actions for autoloading parent (belongsTo) and child (hasOne) model
     let actions = '';
 
-    // Foreign fields
-    if (entity.hasOwnProperty('relations') && entity.relations.belongsTo) {
-      let parents = entity.relations.belongsTo.map(relation => {
-        let relEntity = this.lookupEntity(relation);
-        return `'${this.toTableCase(relEntity.name)}'`;
-      });
+    // belongsTo and hasOne relations
+    if (entity.hasOwnProperty('relations')) {
+      let parents = [];
+      let ones = [];
 
-      let keyValues = `      withRelated: [${parents.join(', ')}],`;
+      if (entity.relations.belongsTo) {
+        parents = entity.relations.belongsTo.map(relation => {
+          let relEntity = this.lookupEntity(relation);
+          return `'${this.toTableCase(relEntity.name)}'`;
+        });
+      }
+      if (entity.relations.hasOne) {
+        ones = entity.relations.hasOne.map(relation => {
+          let relEntity = this.lookupEntity(relation);
+          return `'${this.toTableCase(relEntity.name)}'`;
+        });
+      }
+
+      let keyValues = `      withRelated: [${parents.concat(ones).join(', ')}],`;
       actions += this.generateAction(entity, 'all', keyValues);
       actions += '\n';
       actions += this.generateAction(entity, 'find', keyValues);
@@ -383,6 +414,12 @@ class GeneratorController {
         });
       }
 
+      if (entity.relations.hasOne) {
+        entity.relations.hasOne.forEach(relation => {
+          relations += this.generateRelation(relation, 'hasOne');
+        });
+      }
+
       if (entity.relations.hasMany) {
         entity.relations.hasMany.forEach(relation => {
           relations += this.generateRelation(relation, 'hasMany');
@@ -430,8 +467,12 @@ class GeneratorController {
     entity.fields = entity.fields || [];
 
     // Add fields for foreign keys in the Many side of 1-to-Many or Many-to-Many
-    if (entity.hasOwnProperty('relations') && entity.relations.belongsTo) {
-      entity.relations.belongsTo.forEach(relation => {
+    // Also fields for 1-to-1 relation
+    if (entity.hasOwnProperty('relations')) {
+      let relations = entity.relations.belongsTo || [];
+      relations = relations.concat(entity.relations.hasOne || []);
+
+      relations.forEach(relation => {
         let relEntity = this.lookupEntity(relation);
 
         // Calculate foreign key value from Parent range to respect constraint
@@ -550,6 +591,8 @@ class GeneratorController {
 
     let relationName;
     if (relationFunction === 'belongsTo') {
+      relationName = this.toCamelCase(entity.name);
+    } else if (relationFunction === 'hasOne') {
       relationName = this.toCamelCase(entity.name);
     } else if (relationFunction === 'hasMany') {
       relationName = this.toCamelCase(entity.plural);
