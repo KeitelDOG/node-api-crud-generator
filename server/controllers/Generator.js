@@ -481,6 +481,25 @@ class GeneratorController {
           fkValue = `parseInt(Math.random() * i) || null,`;
         }
 
+        // UNIQUE CHILD for hasOne Relation
+        // check if foreign field is from hasOne
+        if (relEntity.hasOwnProperty('relations') && relEntity.relations.hasOne) {
+          // if at the reverse, the relEntity contains hasOne to entity
+          // then the forein key field will be unique
+          // so we must avoid random value from parent id, use incremental id
+          if (relEntity.relations.hasOne.includes(entity.name)) {
+            // overwrite the foreign key value
+            if (entity.hasOwnProperty('auth')) {
+              fkValue = ' i !== undefined ? i + 2 : 1,';
+            } else {
+              fkValue = 'i + 1,';
+            }
+          }
+        }
+
+        if (entity.hasOwnProperty('auth')) {
+          fieldValues += '  ';
+        }
 
         fieldValues += `      ${this.toTableCase(relEntity.name)}_id: ${fkValue}\n`;
       });
