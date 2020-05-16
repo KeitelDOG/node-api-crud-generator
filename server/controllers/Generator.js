@@ -145,7 +145,7 @@ class GeneratorController {
       entity.relations.belongsTo.forEach(relation => {
         let relEntity = this.lookupEntity(relation);
 
-        fieldsCode += `    table.integer('${this.toCamelCase(relEntity.name)}_id').unsigned()`;
+        fieldsCode += `    table.integer('${this.toTableCase(relEntity.name)}_id').unsigned()`;
 
         // check if foreign field is from hasOne
         if (relEntity.hasOwnProperty('relations') && relEntity.relations.hasOne) {
@@ -169,7 +169,7 @@ class GeneratorController {
       entity.relations.belongsTo.forEach(relation => {
         let relEntity = this.lookupEntity(relation);
 
-        foreignsCode += `    table.foreign('${this.toCamelCase(relEntity.name)}_id').references('${this.toCamelCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
+        foreignsCode += `    table.foreign('${this.toTableCase(relEntity.name)}_id').references('${this.toTableCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
       });
     }
 
@@ -481,8 +481,27 @@ class GeneratorController {
           fkValue = `parseInt(Math.random() * i) || null,`;
         }
 
+        // UNIQUE CHILD for hasOne Relation
+        // check if foreign field is from hasOne
+        if (relEntity.hasOwnProperty('relations') && relEntity.relations.hasOne) {
+          // if at the reverse, the relEntity contains hasOne to entity
+          // then the forein key field will be unique
+          // so we must avoid random value from parent id, use incremental id
+          if (relEntity.relations.hasOne.includes(entity.name)) {
+            // overwrite the foreign key value
+            if (entity.hasOwnProperty('auth')) {
+              fkValue = ' i !== undefined ? i + 2 : 1,';
+            } else {
+              fkValue = 'i + 1,';
+            }
+          }
+        }
 
-        fieldValues += `      ${this.toCamelCase(relEntity.name)}_id: ${fkValue}\n`;
+        if (entity.hasOwnProperty('auth')) {
+          fieldValues += '  ';
+        }
+
+        fieldValues += `      ${this.toTableCase(relEntity.name)}_id: ${fkValue}\n`;
       });
     }
 
