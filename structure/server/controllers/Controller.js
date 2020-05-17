@@ -13,6 +13,7 @@ class Controller {
 
     this.applyRelations(req.query);
     this.applyWhere(req.query);
+    this.applyPage(req.query);
     this.applyLimit(req.query);
     this.applySort(req.query);
 
@@ -34,8 +35,12 @@ class Controller {
       });
     })
       .fetchPage(this.attribs)
-      .then((models) => {
-        res.status(200).send(models);
+      .then(results => {
+        console.log(results);
+        res.status(200).send({
+          models: results.models,
+          pagination: results.pagination,
+        });
       })
       .catch(error => {
         let details = this.getErrorDetails(error);
@@ -169,12 +174,22 @@ class Controller {
     });
   }
 
-  applyLimit(query, attribs) {
-    this.limit = query.limit || 20;
-    this.offset = query.offset || 0;
+  applyPage(query, attribs) {
+    this.page = query.page || 1;
+    this.pageSize = query.pageSize || 20;
 
-    this.attribs.limit = this.limit;
-    this.attribs.offset = this.offset;
+    this.attribs.page = this.page;
+    this.attribs.pageSize = this.pageSize;
+  }
+
+  applyLimit(query, attribs) {
+    if (query.limit || query.offset) {
+      this.limit = query.limit || 20;
+      this.offset = query.offset || 0;
+
+      this.attribs.limit = this.limit;
+      this.attribs.offset = this.offset;
+    }
   }
 
   applyRelations(query) {
