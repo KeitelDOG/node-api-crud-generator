@@ -16,7 +16,7 @@ const test = new TestController();
 
 
 router.get('/', function(req, res) {
-  console.log('Megalobiz Main App API v2');
+  console.log('Main App API v2');
   res
     .status(200)
     .send({ status: 'Success', api: 'Version 2' })

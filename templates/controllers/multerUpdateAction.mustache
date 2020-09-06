@@ -1,0 +1,12 @@
+
+  update(req, res, next) {
+    // Find model to get old filenames
+    req.oldFilepaths = [];
+
+    new this.model({ id })
+      .fetch(this.attribs)
+      .then((model) => {
+{{{oldFilesCode}}}
+        super.find(req, res, next);
+      });
+  }

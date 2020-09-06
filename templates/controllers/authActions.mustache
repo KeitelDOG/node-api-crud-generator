@@ -1,7 +1,6 @@
 
   insert(req, res) {
     let data = req.body;
-    data.updated_by = req.auth.id;
 
     Auth.hashPass(data.{{secret}}, ({{secret}})=>{
       data.{{secret}} = {{secret}};
@@ -22,7 +21,6 @@
   update(req, res) {
     // remove {{secret}} and {{identification}} for body here
     let data = req.body;
-    data.updated_by = req.auth.id;
     delete data.{{secret}};
     delete data.{{identification}};
 

@@ -1,9 +1,11 @@
 var express = require('express');
 var router = express.Router();
-const multer = require('multer');
 
 // token authorization
 const { verifyToken } = require('../../../middlewares/authorization');
+
+// Import Multer Factory
+const MulterFactory = require('../../MulterFactory');
 
 // Declare Controllers
 // Auth Controller
@@ -12,6 +14,9 @@ const { verifyToken } = require('../../../middlewares/authorization');
 // Other Controllers
 const TestController = require('../../../controllers/v1/Test');
 {{{controllers}}}
+
+// Create Multers for file uploading
+{{{multers}}}
 
 // Instanciate Controllers
 const test = new TestController();

@@ -1,3 +1,5 @@
+const fs = require('fs');
+
 class Controller {
 
   constructor() {
@@ -36,7 +38,6 @@ class Controller {
     })
       .fetchPage(this.attribs)
       .then(results => {
-        console.log(results);
         res.status(200).send({
           models: results.models,
           pagination: results.pagination,
@@ -77,12 +78,30 @@ class Controller {
   insert(req, res) {
     let data = req.body;
 
+    // this handle multiple files upload
+    // but ONLY 1 file for each field will be used
+    if(req.files) {
+      // put each filename into corresponding field name
+      Object.keys(req.files).forEach(key => {
+        let file = req.files[key][0];
+        data[file.fieldname] = file.filename;
+      });
+    }
+
     new this.model()
       .save(data, { method: 'insert' })
       .then((result) => {
         res.status(201).send(result);
       })
       .catch(error => {
+        // unlink the files on error
+        if (req.files) {
+          Object.keys(req.files).forEach(key => {
+            let file = req.files[key][0];
+            fs.unlinkSync(file.path);
+          });
+        }
+
         let details = this.getErrorDetails(error);
         res.status(400).send({
           message: 'Could not insert model',
@@ -98,9 +117,24 @@ class Controller {
     new this.model({ id })
       .save(data, { patch: true })
       .then((result) => {
+        // Remove old files if any when using multer files upload
+        if (req.oldFilepaths) {
+          req.oldFilepaths.forEach(path => {
+            fs.unlinkSync(path);
+          });
+        }
+
         res.status(201).send(result);
       })
       .catch(error => {
+        // unlink the files on error
+        if (req.files) {
+          Object.keys(req.files).forEach(key => {
+            let file = req.files[key][0];
+            fs.unlinkSync(file.path);
+          });
+        }
+
         let details = this.getErrorDetails(error);
         res.status(400).send({
           message: 'Could not update model',

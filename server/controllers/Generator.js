@@ -344,12 +344,26 @@ class GeneratorController {
       }
 
       let keyValues = `      withRelated: [${parents.concat(ones).join(', ')}],`;
-      actions += this.generateAction(entity, 'all', keyValues);
+      actions += this.generateRetrieveAction(entity, 'all', keyValues);
       actions += '\n';
-      actions += this.generateAction(entity, 'find', keyValues);
+      actions += this.generateRetrieveAction(entity, 'find', keyValues);
     }
 
     // TODO: Add Multer for fields that need file upload
+    // belongsTo and hasOne relations
+    let fileFields = entity.fields.filter(field => {
+      return field.hasOwnProperty('file') && field.file === true;
+    });
+
+    if (fileFields.length) {
+      let oldFilesCode = '';
+      fileFields.forEach(field => {
+        oldFilesCode += `        req.oldFilepaths.push('public/files/' + model.get('${field.name}'));\n`;
+      });
+
+      actions += '\n';
+      actions += this.generateMulterUpdateAction(entity, oldFilesCode);
+    }
 
 
     let rendered = Mustache.render(template,
@@ -620,6 +634,12 @@ class GeneratorController {
     let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
     //console.log('template', template);
 
+    // Multers creation
+    let multers = '';
+    this.entities.forEach(entity => {
+      multers += this.generateMulterCreation(entity);
+    });
+
     // Controllers declaration
     let controllers = '';
     let auth = false;
@@ -659,6 +679,7 @@ class GeneratorController {
       template,
       {
         appName: crud.app,
+        multers,
         controllers,
         controllerInstances,
         endpoints,
@@ -688,6 +709,27 @@ class GeneratorController {
     req.query.key = 'KsvSfbTUYsh3EF4cfCx35hEsCAzTMnsw';
     process.env.SECURITY_KEY = 'KsvSfbTUYsh3EF4cfCx35hEsCAzTMnsw';
     documentation.generate(req, resource);
+  }
+
+  generateMulterCreation(entity) {
+    let hasFileField = entity.fields.some(field => {
+      return field.hasOwnProperty('file') && field.file === true;
+    });
+
+    if (!hasFileField) {
+      return '';
+    }
+
+    let readPath = path.join(__dirname, '../../templates/routes/multerCreation.mustache');
+
+    let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
+
+    return Mustache.render(
+      template,
+      {
+        entity: this.toCamelCase(entity.name),
+      }
+    );
   }
 
   generateControllerDeclaration(entity) {
@@ -720,6 +762,20 @@ class GeneratorController {
   generateEndpoints(entity) {
     let readPath = path.join(__dirname, '../../templates/routes/endpoints.mustache');
 
+    let fields = '';
+
+    let filtered = entity.fields.filter(field => {
+      return field.hasOwnProperty('file') && field.file === true;
+    });
+
+    if (filtered.length) {
+      readPath = path.join(__dirname, '../../templates/routes/multerEndpoints.mustache');
+
+      fields = filtered.map(field => {
+        return `{ name: '${field.name}' }`;
+      }).join(', ');
+    }
+
     let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
 
     return Mustache.render(
@@ -727,6 +783,7 @@ class GeneratorController {
       {
         entity: this.toCamelCase(entity.name),
         entityUri: this.toDashCase(entity.plural),
+        fields,
       }
     );
   }
@@ -751,8 +808,8 @@ class GeneratorController {
     );
   }
 
-  generateAction(entity, method, keyValues) {
-    let readPath = path.join(__dirname, '../../templates/controllers/action.mustache');
+  generateRetrieveAction(entity, method, keyValues) {
+    let readPath = path.join(__dirname, '../../templates/controllers/retrieveAction.mustache');
 
     let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
 
@@ -762,6 +819,19 @@ class GeneratorController {
         entity: entity.name,
         method,
         keyValues,
+      }
+    );
+  }
+
+  generateMulterUpdateAction(entity, oldFilesCode) {
+    let readPath = path.join(__dirname, '../../templates/controllers/multerUpdateAction.mustache');
+
+    let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
+
+    return Mustache.render(
+      template,
+      {
+        oldFilesCode
       }
     );
   }

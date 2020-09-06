@@ -9,6 +9,20 @@ module.exports = {
       length: 4000,
       faker: 'lorem.sentence',
     },
+    {
+      name: 'picture_1',
+      type: 'string',
+      length: 255,
+      faker: 'image.imageUrl',
+      file: true,
+    },
+    {
+      name: 'picture_2',
+      type: 'string',
+      length: 255,
+      faker: 'image.imageUrl',
+      file: true,
+    },
   ],
   relations: {
     belongsTo: ['User', 'Post'], // User: owner, Post: original post
