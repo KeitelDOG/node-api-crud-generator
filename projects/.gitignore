@@ -1,0 +1,6 @@
+*
+!.gitignore
+!cool-project
+!cool-project/*
+!cool-project/entities
+!cool-project/entities/*

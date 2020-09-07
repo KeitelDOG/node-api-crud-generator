@@ -2,12 +2,14 @@ const fs = require('fs-extra');
 const path = require('path');
 const Mustache = require('mustache');
 const moment = require('moment');
-const crud = require('../../crud');
+const projects = require('../../projects');
 
 class GeneratorController {
 
   constructor() {
-    this.entities = crud.entities;
+    this.projectName = '';
+    this.crud = {};
+    this.entities = [];
     this.belongsToManyTrack = [];
     this.belongsToManySeedTrack = [];
     this.migrationMoment;
@@ -15,9 +17,22 @@ class GeneratorController {
   }
 
   generate(req, res, next) {
+    // load project info
+    this.projectName = req.params.project;
+    console.log('bulding project', this.projectName);
+    this.entities = projects[this.projectName].entities;
+    this.crud = projects[this.projectName];
+
+    if (!this.entities) {
+      console.log('no entity data found');
+      return;
+    }
+
     this.belongsToManyTrack = [];
+    // migration file naming with datetime
     this.migrationMoment = moment();
     this.migrationMoment.set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
+    // seed file naming ID
     this.seedNumber = 1;
 
     // Generate Static template files
@@ -67,23 +82,23 @@ class GeneratorController {
     // Structure
     fs.copySync(
       path.join(__dirname, `../../structure`),
-      path.join(__dirname, `../../output`)
+      path.join(__dirname, `../../output/${this.projectName}`)
     );
 
-    // Copy the crud directory to project
+    // Copy the project directory to output project
     fs.copySync(
-      path.join(__dirname, `../../crud`),
-      path.join(__dirname, `../../output/crud`)
+      path.join(__dirname, `../../projects/${this.projectName}`),
+      path.join(__dirname, `../../output/${this.projectName}/crud`)
     );
 
     // Copy environment files
     fs.copySync(
       path.join(__dirname, `../../structure/.env.example`),
-      path.join(__dirname, `../../output/.env`)
+      path.join(__dirname, `../../output/${this.projectName}/.env`)
     );
     fs.copySync(
       path.join(__dirname, `../../structure/knexfile.example.js`),
-      path.join(__dirname, `../../output/knexfile.js`)
+      path.join(__dirname, `../../output/${this.projectName}/knexfile.js`)
     );
   }
 
@@ -95,11 +110,11 @@ class GeneratorController {
     let rendered = Mustache.render(
       template,
       {
-        app: crud.app,
+        app: this.crud.app,
       }
     );
 
-    let writePath = path.join(__dirname, `../../output/server/index.js`);
+    let writePath = path.join(__dirname, `../../output/${this.projectName}/server/index.js`);
 
     fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
   }
@@ -112,15 +127,15 @@ class GeneratorController {
     let rendered = Mustache.render(
       template,
       {
-        package: crud.package,
-        app: crud.app,
-        description: crud.description,
-        author: crud.author,
-        repos: crud.repos,
+        package: this.crud.package,
+        app: this.crud.app,
+        description: this.crud.description,
+        author: this.crud.author,
+        repos: this.crud.repos,
       }
     );
 
-    let writePath = path.join(__dirname, `../../output/package.json`);
+    let writePath = path.join(__dirname, `../../output/${this.projectName}/package.json`);
 
     fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
   }
@@ -181,7 +196,7 @@ class GeneratorController {
       }
     );
 
-    let writePath = path.join(__dirname, `../../output/database/migrations/${startName}_create_table_${tableName}.js`);
+    let writePath = path.join(__dirname, `../../output/${this.projectName}/database/migrations/${startName}_create_table_${tableName}.js`);
 
     fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
   }
@@ -292,7 +307,7 @@ class GeneratorController {
         }
       );
 
-      let authWritePath = path.join(__dirname, `../../output/server/controllers/v1/Auth.js`);
+      let authWritePath = path.join(__dirname, `../../output/${this.projectName}/server/controllers/v1/Auth.js`);
 
       fs.writeFileSync(authWritePath, authRendered, { encoding: 'utf-8' });
 
@@ -308,7 +323,7 @@ class GeneratorController {
         }
       );
 
-      let swaggerWritePath = path.join(__dirname, `../../output/server/controllers/v1/swagger/Auth.js`);
+      let swaggerWritePath = path.join(__dirname, `../../output/${this.projectName}/server/controllers/v1/swagger/Auth.js`);
 
       fs.writeFileSync(swaggerWritePath, swaggerRendered, { encoding: 'utf-8' });
 
@@ -375,7 +390,7 @@ class GeneratorController {
       }
     );
 
-    let writePath = path.join(__dirname, `../../output/server/controllers/v1/${entity.name}.js`);
+    let writePath = path.join(__dirname, `../../output/${this.projectName}/server/controllers/v1/${entity.name}.js`);
 
     fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
   }
@@ -387,7 +402,7 @@ class GeneratorController {
 
     let rendered = Mustache.render(template);
 
-    let writePath = path.join(__dirname, `../../output/server/middlewares/authorization.js`);
+    let writePath = path.join(__dirname, `../../output/${this.projectName}/server/middlewares/authorization.js`);
 
     fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
   }
@@ -446,7 +461,7 @@ class GeneratorController {
       }
     );
 
-    let writePath = path.join(__dirname, `../../output/server/models/${entity.name}.js`);
+    let writePath = path.join(__dirname, `../../output/${this.projectName}/server/models/${entity.name}.js`);
 
     fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
   }
@@ -543,7 +558,7 @@ class GeneratorController {
     this.seedNumber++;
     startName = '0'.repeat(5 - startName.length) + startName;
 
-    let writePath = path.join(__dirname, `../../output/database/seeds/${startName}_${tableName}.js`);
+    let writePath = path.join(__dirname, `../../output/${this.projectName}/database/seeds/${startName}_${tableName}.js`);
 
     fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
   }
@@ -678,7 +693,7 @@ class GeneratorController {
     let rendered = Mustache.render(
       template,
       {
-        appName: crud.app,
+        appName: this.crud.app,
         multers,
         controllers,
         controllerInstances,
@@ -688,7 +703,7 @@ class GeneratorController {
       }
     );
 
-    let writePath = path.join(__dirname, `../../output/server/routes/api/v1/index.js`);
+    let writePath = path.join(__dirname, `../../output/${this.projectName}/server/routes/api/v1/index.js`);
 
     fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
   }
@@ -704,7 +719,7 @@ class GeneratorController {
       }
     }
 
-    const DocumentationController = require('../../output/server/controllers/Documentation');
+    const DocumentationController = require(`../../output/${this.projectName}/server/controllers/Documentation`);
     let documentation = new DocumentationController();
     req.query.key = 'KsvSfbTUYsh3EF4cfCx35hEsCAzTMnsw';
     process.env.SECURITY_KEY = 'KsvSfbTUYsh3EF4cfCx35hEsCAzTMnsw';
@@ -885,7 +900,7 @@ class GeneratorController {
     this.migrationMoment.add(1, 'seconds');
     let startName = this.migrationMoment.format('YYYYMMDDHHmmss');
 
-    let writePath = path.join(__dirname, `../../output/database/migrations/${startName}_create_table_${tableName}.js`);
+    let writePath = path.join(__dirname, `../../output/${this.projectName}/database/migrations/${startName}_create_table_${tableName}.js`);
 
     fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
 
@@ -942,7 +957,7 @@ class GeneratorController {
     this.seedNumber++;
     startName = '0'.repeat(5 - startName.length) + startName;
 
-    let writePath = path.join(__dirname, `../../output/database/seeds/${startName}_${tableName}.js`);
+    let writePath = path.join(__dirname, `../../output/${this.projectName}/database/seeds/${startName}_${tableName}.js`);
 
     fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
 

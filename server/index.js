@@ -19,7 +19,7 @@ app.get('/', function(req, res) {
 });
 
 
-app.get('/generators/generate', generator.generate.bind(generator));
+app.get('/generators/generate/:project', generator.generate.bind(generator));
 
 app.listen(port, function() {
   console.log(`API CRUD Generator Server is listening to port ${port}`);

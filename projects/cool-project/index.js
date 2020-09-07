@@ -4,8 +4,8 @@
  *
  */
 
-const Post = require('./entities.example/Post');
-const Comment = require('./entities.example/Comment');
+const Post = require('./entities/Post');
+const Comment = require('./entities/Comment');
 
 module.exports = {
   package: 'cool-project',
