@@ -50,6 +50,7 @@ module.exports = {
         belongsToMany: [
           {
             entity: 'Post', // mentioned users
+            relation: 'mPosts',
             fields: [
               {
                 name: 'mention_time', // just to illustrate many-to-many (pivot) field

@@ -12,7 +12,16 @@ module.exports = {
     },
   ],
   relations: {
-    belongsTo: ['User', 'Post'], // User: owner
+    belongsTo: [
+      'User',
+      // Custom relation (object)
+      // all 3: entity, relation and field must be provided
+      {
+        entity: 'Post',
+        relation: 'myPost',
+        field: 'comment_fk',
+      }
+    ], // User: owner
     belongsToMany: [
       { entity: 'User' }, // User: mentioned users
     ],

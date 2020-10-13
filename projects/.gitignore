@@ -1,5 +1,6 @@
 *
 !.gitignore
+!index.example.js
 !cool-project
 !cool-project/*
 !cool-project/entities

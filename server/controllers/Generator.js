@@ -79,6 +79,12 @@ class GeneratorController {
   }
 
   generateStatics() {
+    console.log('generating app static structure...');
+    // Remove some directories
+    fs.removeSync(
+      path.join(__dirname, `../../output/${this.projectName}/database`)
+    );
+
     // Structure
     fs.copySync(
       path.join(__dirname, `../../structure`),
@@ -103,6 +109,7 @@ class GeneratorController {
   }
 
   generateServerIndex() {
+    console.log('generating server index.js');
     let readPath = path.join(__dirname, '../../templates/server/index.mustache');
 
     let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
@@ -120,6 +127,7 @@ class GeneratorController {
   }
 
   generatePackage() {
+    console.log('generating package...');
     let readPath = path.join(__dirname, '../../templates/package.mustache');
 
     let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
@@ -141,6 +149,7 @@ class GeneratorController {
   }
 
   generateMigration(entity) {
+    console.log(`generating migration for ${entity.name}...`);
     let tableName = this.toTableCase(entity.plural);
 
     // Start filename to keep order of migration files
@@ -160,7 +169,14 @@ class GeneratorController {
       entity.relations.belongsTo.forEach(relation => {
         let relEntity = this.lookupEntity(relation);
 
-        fieldsCode += `    table.integer('${this.toTableCase(relEntity.name)}_id').unsigned()`;
+        // default foreign key name, OR provided one
+        let fkName = `${this.toTableCase(relEntity.name)}_id`;
+        if (typeof relation === 'object') {
+          // create FK field with object field
+          fkName = relation.field;
+        }
+
+        fieldsCode += `    table.integer('${fkName}').unsigned()`;
 
         // check if foreign field is from hasOne
         if (relEntity.hasOwnProperty('relations') && relEntity.relations.hasOne) {
@@ -184,7 +200,14 @@ class GeneratorController {
       entity.relations.belongsTo.forEach(relation => {
         let relEntity = this.lookupEntity(relation);
 
-        foreignsCode += `    table.foreign('${this.toTableCase(relEntity.name)}_id').references('${this.toTableCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
+        // default foreign key name, OR provided one
+        let fkName = `${this.toTableCase(relEntity.name)}_id`;
+        if (typeof relation === 'object') {
+          // create FK field with object field
+          fkName = relation.field;
+        }
+
+        foreignsCode += `    table.integer('${fkName}').references('${this.toTableCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
       });
     }
 
@@ -244,6 +267,8 @@ class GeneratorController {
   }
 
   generateManyMigrations(entity) {
+    console.log(`generating many-to-many migration for ${entity.name}...`);
+
     // Many-To-Many foreign fields
     // Many to Many structure is different
     // They are Object instead of string
@@ -268,6 +293,7 @@ class GeneratorController {
   }
 
   generateController(entity) {
+    console.log(`generating controller for ${entity.name}...`);
 
     // Special actions for Authentication Controller
     let authActions = '';
@@ -348,13 +374,21 @@ class GeneratorController {
       if (entity.relations.belongsTo) {
         parents = entity.relations.belongsTo.map(relation => {
           let relEntity = this.lookupEntity(relation);
-          return `'${this.toTableCase(relEntity.name)}'`;
+          // relation can be string or object
+          if (typeof relation === 'object') {
+            return `'${relation.relation}'`;
+          }
+          return `'${this.toCamelCase(relEntity.name)}'`;
         });
       }
       if (entity.relations.hasOne) {
         ones = entity.relations.hasOne.map(relation => {
           let relEntity = this.lookupEntity(relation);
-          return `'${this.toTableCase(relEntity.name)}'`;
+          // relation can be string or object
+          if (typeof relation === 'object') {
+            return `'${relation.relation}'`;
+          }
+          return `'${this.toCamelCase(relEntity.name)}'`;
         });
       }
 
@@ -396,6 +430,7 @@ class GeneratorController {
   }
 
   generateAutorizationMiddleware() {
+    console.log('generating authorization middleware...');
     let readPath = path.join(__dirname, '../../templates/middlewares/authorization.mustache');
 
     let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
@@ -408,6 +443,8 @@ class GeneratorController {
   }
 
   generateModel(entity) {
+    console.log(`generating model for ${entity.name}...`);
+
     let readPath = path.join(__dirname, '../../templates/models/Model.mustache');
 
     let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
@@ -467,6 +504,8 @@ class GeneratorController {
   }
 
   generateSeed(entity, index) {
+    console.log(`generating seed for ${entity.name}...`);
+
     let tableName = this.toTableCase(entity.plural);
 
     let readPath = path.join(__dirname, '../../templates/database/seeds/seed.mustache');
@@ -530,7 +569,14 @@ class GeneratorController {
           fieldValues += '  ';
         }
 
-        fieldValues += `      ${this.toTableCase(relEntity.name)}_id: ${fkValue}\n`;
+        // default foreign key name, OR provided one
+        let fkName = `${this.toTableCase(relEntity.name)}_id`;
+        if (typeof relation === 'object') {
+          // create FK field with object field
+          fkName = relation.field;
+        }
+
+        fieldValues += `      ${fkName}: ${fkValue}\n`;
       });
     }
 
@@ -604,6 +650,8 @@ class GeneratorController {
   }
 
   generateManySeeds(entity, index) {
+    console.log(`generating many-to-many seed for ${entity.name}...`);
+
     // Many-To-Many foreign fields
     if (entity.hasOwnProperty('relations') && entity.relations.belongsToMany) {
       entity.relations.belongsToMany.forEach(objRelation => {
@@ -616,21 +664,38 @@ class GeneratorController {
   }
 
   generateRelation(relation, relationFunction) {
-    let entity = this.lookupEntity(relation);
-
     let readPath = path.join(__dirname, '../../templates/models/Relation.mustache');
+
+    // relation can be string or object
+    let name = relation;
+    if (typeof relation === 'object') {
+      name = relation.entity;
+      // template to add custom foreign key
+      readPath = path.join(__dirname, '../../templates/models/RelationFull.mustache');
+    }
+
+    let entity = this.lookupEntity(name);
 
     let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
 
     let relationName;
+
     if (relationFunction === 'belongsTo') {
       relationName = this.toCamelCase(entity.name);
     } else if (relationFunction === 'hasOne') {
-      relationName = this.toCamelCase(entity.name);
+      relationName = this.toCamelCase(entityName);
     } else if (relationFunction === 'hasMany') {
       relationName = this.toCamelCase(entity.plural);
     } else if (relationFunction === 'belongsToMany') {
       relationName = 'many' + entity.plural;
+    }
+
+    // If relation is an object, more things to consider
+    //model.belongsTo(Target, [foreignKey], [foreignKeyTarget])
+    let foreignKey;
+    if (typeof relation === 'object') {
+      relationName = relation.relation;
+      foreignKey = relation.field;
     }
 
     return Mustache.render(
@@ -639,11 +704,14 @@ class GeneratorController {
         Entity: entity.name,
         relationName,
         relationFunction,
+        foreignKey,
       }
     );
   }
 
   generateApi() {
+    console.log('generating API routes...');
+
     let readPath = path.join(__dirname, '../../templates/routes/api.mustache');
 
     let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
@@ -709,6 +777,8 @@ class GeneratorController {
   }
 
   generateApiDocumentation(req) {
+    console.log('generating API Documentation...');
+
     let resource = {
       status: () => {
         return {
@@ -964,7 +1034,14 @@ class GeneratorController {
     this.belongsToManySeedTrack.push(tableName);
   }
 
-  lookupEntity(name) {
+  lookupEntity(entity) {
+    // entity can be string or object
+    let name = entity;
+    if (typeof entity === 'object') {
+      // relation object
+      name = entity.entity;
+    }
+
     let filtered = this.entities.filter(entity => {
       return entity.name === name;
     });

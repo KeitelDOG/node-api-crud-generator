@@ -26,7 +26,14 @@ module.exports = {
   ],
   relations: {
     belongsTo: ['User', 'Post'], // User: owner, Post: original post
-    hasMany: ['Comment', 'Post'], // Post: shares (can bu null)
+    hasMany: [
+      {
+        entity: 'Comment',
+        relation: 'myComments',
+        field: 'comment_fk',
+      },
+      'Post', // Post: shares (can bu null)
+    ],
     belongsToMany: [
       { entity: 'User' }, // User: mentioned users
     ],

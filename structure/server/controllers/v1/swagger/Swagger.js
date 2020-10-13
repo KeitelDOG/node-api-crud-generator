@@ -406,8 +406,13 @@ class Swagger {
     return responses;
   }
 
+  lookupEntity(entity) {
+    // entity can be string or object
+    let name = entity;
+    if (typeof entity === 'object') {
+      name = entity.entity;
+    }
 
-  lookupEntity(name) {
     let filtered = this.crud.entities.filter(entity => {
       return entity.name === name;
     });
