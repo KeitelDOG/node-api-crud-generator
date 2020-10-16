@@ -646,6 +646,8 @@ class GeneratorController {
           fieldValues += this.generateFieldValue(entity, field.name, 'finance', 'amount');
         } else if (field.type === 'date') {
           fieldValues += this.generateFieldValue(entity, field.name, 'date', 'past');
+        } else if (field.type === 'boolean') {
+          fieldValues += this.generateFieldValue(entity, field.name, 'boolean', 'past');
         } else {
           fieldValues += this.generateFieldValue(entity, field.name, 'fake', '');
         }
@@ -911,6 +913,10 @@ class GeneratorController {
     }
 
     let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
+
+    if (category === 'fake') {
+      return `      ${field}: faker.fake(${limit}),\n`;
+    }
 
     return Mustache.render(
       template,
