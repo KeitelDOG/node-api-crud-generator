@@ -647,7 +647,7 @@ class GeneratorController {
         } else if (field.type === 'date') {
           fieldValues += this.generateFieldValue(entity, field.name, 'date', 'past');
         } else if (field.type === 'boolean') {
-          fieldValues += this.generateFieldValue(entity, field.name, 'boolean', 'past');
+          fieldValues += this.generateFieldValue(entity, field.name, 'random', 'boolean');
         } else {
           fieldValues += this.generateFieldValue(entity, field.name, 'fake', '');
         }
