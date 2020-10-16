@@ -28,7 +28,10 @@ class GeneratorController {
       return;
     }
 
+    // Important: clear many to many trackers
     this.belongsToManyTrack = [];
+    this.belongsToManySeedTrack = [];
+
     // migration file naming with datetime
     this.migrationMoment = moment();
     this.migrationMoment.set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
@@ -66,7 +69,7 @@ class GeneratorController {
     for (var i = 0; i < this.entities.length; i++) {
       let entity = this.entities[i];
       this.generateManyMigrations(entity);
-      this.generateManySeeds(entity, i);
+      this.generateManySeeds(entity);
     }
 
     // Generate API endpoints
@@ -271,10 +274,15 @@ class GeneratorController {
 
     // Many-To-Many foreign fields
     // Many to Many structure is different
-    // They are Object instead of string
+    // They are Object only, no string
+    // All 2 fk1, fk2 are required together
     /*
     {
       entity: 'Entity',
+      relation: 'manyEntities',
+      table: 'entities',
+      fk1: 'foreign_key_1',
+      fk2: 'foreign_key_2',
       fields: [
         {
 
@@ -283,11 +291,9 @@ class GeneratorController {
     }
     */
     if (entity.hasOwnProperty('relations') && entity.relations.belongsToMany) {
-      entity.relations.belongsToMany.forEach(objRelation => {
-        let relEntity = this.lookupEntity(objRelation.entity);
-        // pivot fields
-        let fields = objRelation.fields || [];
-        this.generateManyMigration(entity, relEntity, fields);
+      entity.relations.belongsToMany.forEach(relation => {
+        let relEntity = this.lookupEntity(relation.entity);
+        this.generateManyMigration(entity, relEntity, relation);
       });
     }
   }
@@ -482,8 +488,8 @@ class GeneratorController {
       }
 
       if (entity.relations.belongsToMany) {
-        entity.relations.belongsToMany.forEach(objRelation => {
-          relations += this.generateRelation(objRelation.entity, 'belongsToMany');
+        entity.relations.belongsToMany.forEach(relation => {
+          relations += this.generateRelation(relation, 'belongsToMany');
         });
       }
     }
@@ -649,16 +655,14 @@ class GeneratorController {
     return fieldValues;
   }
 
-  generateManySeeds(entity, index) {
+  generateManySeeds(entity) {
     console.log(`generating many-to-many seed for ${entity.name}...`);
 
     // Many-To-Many foreign fields
     if (entity.hasOwnProperty('relations') && entity.relations.belongsToMany) {
-      entity.relations.belongsToMany.forEach(objRelation => {
-        let relEntity = this.lookupEntity(objRelation.entity);
-        // pivot fields
-        let fields = objRelation.fields || [];
-        this.generateManySeed(entity, relEntity, fields);
+      entity.relations.belongsToMany.forEach(relation => {
+        let relEntity = this.lookupEntity(relation.entity);
+        this.generateManySeed(entity, relEntity, relation);
       });
     }
   }
@@ -671,14 +675,15 @@ class GeneratorController {
     if (typeof relation === 'object') {
       name = relation.entity;
       // template to add custom foreign key
-      readPath = path.join(__dirname, '../../templates/models/RelationFull.mustache');
+      readPath = path.join(__dirname, '../../templates/models/RelationFK.mustache');
     }
 
     let entity = this.lookupEntity(name);
 
-    let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
-
     let relationName;
+    let joinTableName;
+    let fk1;
+    let fk2;
 
     if (relationFunction === 'belongsTo') {
       relationName = this.toCamelCase(entity.name);
@@ -688,13 +693,35 @@ class GeneratorController {
       relationName = this.toCamelCase(entity.plural);
     } else if (relationFunction === 'belongsToMany') {
       relationName = 'many' + entity.plural;
+      readPath = path.join(__dirname, '../../templates/models/Relation.mustache');
+
+      // model.belongsToMany(Target, [joinTableName], [foreignKey], [otherKey], [foreignKeyTarget], [otherKeyTarget])
+
+      if (relation.table) {
+        readPath = path.join(__dirname, '../../templates/models/RelationManyTable.mustache');
+
+        joinTableName = relation.table;
+
+        if (relation.fk1) {
+          readPath = path.join(__dirname, '../../templates/models/RelationManyFull.mustache');
+
+          fk1 = relation.fk1;
+          fk2 = relation.fk2;
+        }
+      }
     }
 
+    // Generate Template here after readPath has been updated accross all logics
+    let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
+
     // If relation is an object, more things to consider
-    //model.belongsTo(Target, [foreignKey], [foreignKeyTarget])
+    // model.belongsTo(Target, [foreignKey], [foreignKeyTarget])
+    // model.hasMany(Target, [foreignKey], [foreignKeyTarget])
+    // model.hasOne(Target, [foreignKey], [foreignKeyTarget])
     let foreignKey;
     if (typeof relation === 'object') {
-      relationName = relation.relation;
+      // override relationName if provided
+      relationName = relation.relation || relationName;
       foreignKey = relation.field;
     }
 
@@ -705,6 +732,9 @@ class GeneratorController {
         relationName,
         relationFunction,
         foreignKey,
+        joinTableName,
+        fk1,
+        fk2,
       }
     );
   }
@@ -921,14 +951,18 @@ class GeneratorController {
     );
   }
 
-  generateManyMigration(entity1, entity2, fields) {
+  generateManyMigration(entity1, entity2, relation) {
     // Create a Many-To-Many table for both tables
     let tb1 = this.toTableCase(entity1.plural);
     let tb2 = this.toTableCase(entity2.plural);
     let tableName;
+    // pivot fields
+    let fields = relation.fields || [];
 
-    // tables will be placed in alphabetic order
-    if (tb1 < tb2) {
+    // tables will be placed in alphabetic order if not provided
+    if (relation.table) {
+      tableName = relation.table;
+    } else if (tb1 < tb2) {
       tableName = tb1 + '_' + tb2;
     } else {
       tableName = tb2 + '_' + tb1;
@@ -946,17 +980,19 @@ class GeneratorController {
 
     // Foreign key fields
     let fieldsCode = '';
+    let fk1 = relation.fk1 || `${this.toCamelCase(entity1.name)}_id`;
+    let fk2 = relation.fk2 || `${this.toCamelCase(entity2.name)}_id`;
 
-    fieldsCode += `    table.integer('${this.toCamelCase(entity1.name)}_id').unsigned();\n`;
-    fieldsCode += `    table.integer('${this.toCamelCase(entity2.name)}_id').unsigned();\n`;
+    fieldsCode += `    table.integer('${fk1}').unsigned().notNullable();\n`;
+    fieldsCode += `    table.integer('${fk2}').unsigned().notNullable();\n`;
 
     // Many-to-Many Fields (pivot) if any
     fieldsCode += this.generateMigrationFields(fields);
 
     // Foreign key indexes
     let foreignsCode = '\n';
-    foreignsCode += `    table.foreign('${this.toCamelCase(entity1.name)}_id').references('${this.toCamelCase(entity1.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
-    foreignsCode += `    table.foreign('${this.toCamelCase(entity2.name)}_id').references('${this.toCamelCase(entity2.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
+    foreignsCode += `    table.foreign('${fk1}').references('${this.toCamelCase(entity1.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
+    foreignsCode += `    table.foreign('${fk2}').references('${this.toCamelCase(entity2.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
 
     let rendered = Mustache.render(template,
       {
@@ -977,14 +1013,20 @@ class GeneratorController {
     this.belongsToManyTrack.push(tableName);
   }
 
-  generateManySeed(entity1, entity2, fields) {
+  generateManySeed(entity1, entity2, relation) {
+
     // Create a Many-To-Many seed for both tables
     let tb1 = this.toTableCase(entity1.plural);
     let tb2 = this.toTableCase(entity2.plural);
     let tableName;
 
-    // tables will be placed in alphabetic order
-    if (tb1 < tb2) {
+    // pivot fields
+    let fields = relation.fields || [];
+
+    // if no table provided, tables will be placed in alphabetic order
+    if (relation.table) {
+      tableName = relation.table;
+    } else if (tb1 < tb2) {
       tableName = tb1 + '_' + tb2;
     } else {
       tableName = tb2 + '_' + tb1;
@@ -1002,22 +1044,26 @@ class GeneratorController {
 
     // Foreign key fields
     let fieldValues = '';
+    let fk1 = relation.fk1 || `${this.toCamelCase(entity1.name)}_id`;
+    let fk2 = relation.fk2 || `${this.toCamelCase(entity2.name)}_id`;
 
     // Calculate foreign key value from Parent range to respect constraint
     let fk1Value = `parseInt(Math.random() * ${entity1.seedAmount} + 1),`;
     let fk2Value = `parseInt(Math.random() * ${entity2.seedAmount} + 1),`;
 
-    fieldValues += `      ${this.toCamelCase(entity1.name)}_id: ${fk1Value}\n`;
-    fieldValues += `      ${this.toCamelCase(entity2.name)}_id: ${fk2Value}\n`;
+    fieldValues += `      ${fk1}: ${fk1Value}\n`;
+    fieldValues += `      ${fk2}: ${fk2Value}\n`;
 
     // generate keyValues for normal fields
     fieldValues += this.generateKeyValuesSeed(fields);
+
+    let seedAmount = relation.seedAmount || Math.min(entity1.seedAmount, entity2.seedAmount);
 
     let rendered = Mustache.render(
       template,
       {
         tableName,
-        seedAmount: Math.min(entity1.seedAmount, entity2.seedAmount),
+        seedAmount,
         fieldValues
       }
     );
