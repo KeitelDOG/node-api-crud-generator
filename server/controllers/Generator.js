@@ -210,7 +210,7 @@ class GeneratorController {
           fkName = relation.field;
         }
 
-        foreignsCode += `    table.integer('${fkName}').references('${this.toTableCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
+        foreignsCode += `    table.foreign('${fkName}').references('${this.toTableCase(relEntity.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
       });
     }
 
