@@ -245,6 +245,9 @@ class GeneratorController {
       }
 
       // extension functions code
+      if (field.hasOwnProperty('unsigned') && field.unsigned === true) {
+        fieldsCode += `.unsigned()`;
+      }
       if (field.hasOwnProperty('nullable') && field.nullable === false) {
         fieldsCode += `.notNullable()`;
       }
@@ -986,8 +989,8 @@ class GeneratorController {
 
     // Foreign key fields
     let fieldsCode = '';
-    let fk1 = relation.fk1 || `${this.toCamelCase(entity1.name)}_id`;
-    let fk2 = relation.fk2 || `${this.toCamelCase(entity2.name)}_id`;
+    let fk1 = relation.fk1 || `${this.toTableCase(entity1.name)}_id`;
+    let fk2 = relation.fk2 || `${this.toTableCase(entity2.name)}_id`;
 
     fieldsCode += `    table.integer('${fk1}').unsigned().notNullable();\n`;
     fieldsCode += `    table.integer('${fk2}').unsigned().notNullable();\n`;
