@@ -8,6 +8,13 @@ class DocumentationController {
     this.crud = require('../../crud');
     this.docV1;
     this.docV2;
+
+    // Fill default values
+    for (var i = 0; i < this.crud.entities.length; i++) {
+      this.crud.entities[i].seedAmount = this.crud.entities[i].seedAmount || 10;
+      this.crud.entities[i].fields = this.crud.entities[i].fields || [];
+      this.crud.entities[i].relations = this.crud.entities[i].relations || {};
+    }
   }
 
   generate(req, res) {

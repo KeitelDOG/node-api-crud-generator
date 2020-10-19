@@ -20,13 +20,23 @@ class GeneratorController {
     // load project info
     this.projectName = req.params.project;
     console.log('bulding project', this.projectName);
-    this.entities = projects[this.projectName].entities;
     this.crud = projects[this.projectName];
 
-    if (!this.entities) {
+    if (!this.crud.entities) {
       console.log('no entity data found');
       return;
     }
+
+    // Fill default values
+    this.crud.entities = this.crud.entities || [];
+
+    for (var i = 0; i < this.crud.entities.length; i++) {
+      this.crud.entities[i].seedAmount = this.crud.entities[i].seedAmount || 10;
+      this.crud.entities[i].fields = this.crud.entities[i].fields || [];
+      this.crud.entities[i].relations = this.crud.entities[i].relations || {};
+    }
+
+    this.entities = this.crud.entities;
 
     // Important: clear many to many trackers
     this.belongsToManyTrack = [];
@@ -48,9 +58,6 @@ class GeneratorController {
     // Generate DB-Model-Controller
     for (var i = 0; i < this.entities.length; i++) {
       let entity = this.entities[i];
-
-      this.entities[i].seedAmount = this.entities[i].seedAmount || [];
-      this.entities[i].fields = this.entities[i].fields || [];
 
       // migration
       this.generateMigration(entity);
@@ -77,6 +84,8 @@ class GeneratorController {
 
     // Generate Documentation API Documentation
     this.generateApiDocumentation(req);
+
+    console.log('Project API successfully generated! 🎉');
 
     res.status(200).send('Finish');
   }
