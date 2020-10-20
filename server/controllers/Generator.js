@@ -927,7 +927,7 @@ class GeneratorController {
     let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
 
     if (category === 'fake') {
-      return `      ${field}: faker.fake(${limit}),\n`;
+      return `      ${field}: faker.fake(${length}),\n`;
     }
 
     return Mustache.render(
