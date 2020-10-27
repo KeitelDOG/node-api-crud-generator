@@ -14,6 +14,15 @@ class GeneratorController {
     this.belongsToManySeedTrack = [];
     this.migrationMoment;
     this.seedNumber;
+    this.types = {
+      tinyint: { type: 'number', max: 127 },
+      smallint: { type: 'number', max: 32767 },
+      mediumint: { type: 'number', max: 8388607 },
+      int: { type: 'number' , max: 2147483647 },
+      integer: { type: 'number' , max: 2147483647 },
+      bigint: { type: 'number' }, // 2^63 - 1
+    };
+
   }
 
   generate(req, res, next) {
@@ -269,10 +278,14 @@ class GeneratorController {
 
       if (field.hasOwnProperty('default')) {
         if (typeof field.default === 'string') {
-          fieldsCode += `.default('${field.default}')`;
+          fieldsCode += `.defaultTo('${field.default}')`;
         } else {
-          fieldsCode += `.default(${field.default})`;
+          fieldsCode += `.defaultTo(${field.default})`;
         }
+      }
+
+      if (field.hasOwnProperty('defaultRaw')) {
+        fieldsCode += `.defaultTo(${field.default})`;
       }
 
       fieldsCode += ';\n';
@@ -643,25 +656,25 @@ class GeneratorController {
         if (field.type === 'string') {
           // add string length limit
           field.length = field.length || 255;
-          fieldValues += this.generateFieldValue(entity, field.name, fakers[0], fakers[1], field.length);
+          fieldValues += this.generateFieldValue(entity, field, fakers[0], fakers[1]);
         } else {
-          fieldValues += this.generateFieldValue(entity, field.name, fakers[0], fakers[1]);
+          fieldValues += this.generateFieldValue(entity, field, fakers[0], fakers[1]);
         }
       } else {
         // Default faker method according to field type
         if (field.type === 'string') {
           field.length = field.length || 255;
-          fieldValues += this.generateFieldValue(entity, field.name, 'lorem', 'sentence', field.length);
+          fieldValues += this.generateFieldValue(entity, field, 'lorem', 'sentence');
         } else if (field.type === 'integer') {
-          fieldValues += this.generateFieldValue(entity, field.name, 'random', 'number');
+          fieldValues += this.generateFieldValue(entity, field, 'random', 'number');
         } else if (field.type === 'decimal') {
-          fieldValues += this.generateFieldValue(entity, field.name, 'finance', 'amount');
+          fieldValues += this.generateFieldValue(entity, field, 'finance', 'amount');
         } else if (field.type === 'date') {
-          fieldValues += this.generateFieldValue(entity, field.name, 'date', 'past');
+          fieldValues += this.generateFieldValue(entity, field, 'date', 'past');
         } else if (field.type === 'boolean') {
-          fieldValues += this.generateFieldValue(entity, field.name, 'random', 'boolean');
+          fieldValues += this.generateFieldValue(entity, field, 'random', 'boolean');
         } else {
-          fieldValues += this.generateFieldValue(entity, field.name, 'fake', '');
+          fieldValues += this.generateFieldValue(entity, field, 'fake', '');
         }
       }
     });
@@ -917,7 +930,7 @@ class GeneratorController {
     );
   }
 
-  generateFieldValue(entity, field, category, method, length = 0) {
+  generateFieldValue(entity, field, category, method) {
     let readPath = path.join(__dirname, '../../templates/database/seeds/fieldValue.mustache');
 
     if (entity.hasOwnProperty('auth')) {
@@ -930,13 +943,28 @@ class GeneratorController {
       return `      ${field}: faker.fake(${length}),\n`;
     }
 
+    let limit = '';
+    if (field.type === 'string' && field.length) {
+      limit = `.slice(0, ${field.length})`;
+    }
+
+    // Number max limit
+    let max = '';
+    if (this.types[field.type] && this.types[field.type].type === 'number') {
+      max = this.types[field.type].max || '';
+      if (field.unsigned === true) {
+        // double it
+        max = max ? max * 2 : '';
+      }
+    }
+
     return Mustache.render(
       template,
       {
-        field,
+        field: field.name,
         category,
-        method: method + '()',
-        limit: length ? `.slice(0, ${length})` : '',
+        method: method + `(${max})`,
+        limit,
       }
     );
   }
@@ -1009,8 +1037,8 @@ class GeneratorController {
 
     // Foreign key indexes
     let foreignsCode = '\n';
-    foreignsCode += `    table.foreign('${fk1}').references('${this.toCamelCase(entity1.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
-    foreignsCode += `    table.foreign('${fk2}').references('${this.toCamelCase(entity2.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
+    foreignsCode += `    table.foreign('${fk1}').references('${this.toTableCase(entity1.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
+    foreignsCode += `    table.foreign('${fk2}').references('${this.toTableCase(entity2.plural)}.id').onUpdate('CASCADE').onDelete('RESTRICT');\n`;
 
     let rendered = Mustache.render(template,
       {
@@ -1062,8 +1090,8 @@ class GeneratorController {
 
     // Foreign key fields
     let fieldValues = '';
-    let fk1 = relation.fk1 || `${this.toCamelCase(entity1.name)}_id`;
-    let fk2 = relation.fk2 || `${this.toCamelCase(entity2.name)}_id`;
+    let fk1 = relation.fk1 || `${this.toTableCase(entity1.name)}_id`;
+    let fk2 = relation.fk2 || `${this.toTableCase(entity2.name)}_id`;
 
     // Calculate foreign key value from Parent range to respect constraint
     let fk1Value = `parseInt(Math.random() * ${entity1.seedAmount} + 1),`;
