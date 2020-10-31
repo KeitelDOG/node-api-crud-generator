@@ -20,7 +20,15 @@ class GeneratorController {
       mediumint: { type: 'number', max: 8388607 },
       int: { type: 'number' , max: 2147483647 },
       integer: { type: 'number' , max: 2147483647 },
+      decimal: { type: 'number' , max: 2147483647 },
       bigint: { type: 'number' }, // 2^63 - 1
+      string: { type: 'string' },
+      varchar: { type: 'string' },
+      char: { type: 'string' },
+      date: { type: 'date' },
+      datetime: { type: 'date' },
+      time: { type: 'time' },
+      boolean: { type: 'boolean' },
     };
 
   }
@@ -646,6 +654,12 @@ class GeneratorController {
     // Create faker key value method for each field
     fields.forEach(field => {
 
+      let type = field.type;
+      // Use equivalent type if available
+      if (this.types[field.type] && this.types[field.type].type) {
+        type = this.types[field.type].type;
+      }
+
       // Create hash password for Auth Entity field
       if (entity.hasOwnProperty('auth') && entity.auth[1] === field.name) {
         fieldValues += `        ${field.name}: hash,\n`;
@@ -653,7 +667,7 @@ class GeneratorController {
         // Provided Faker method
         let fakers = field.faker.split('.');
 
-        if (field.type === 'string') {
+        if (type === 'string') {
           // add string length limit
           field.length = field.length || 255;
           fieldValues += this.generateFieldValue(entity, field, fakers[0], fakers[1]);
@@ -662,19 +676,22 @@ class GeneratorController {
         }
       } else {
         // Default faker method according to field type
-        if (field.type === 'string') {
+        if (type === 'string') {
           field.length = field.length || 255;
           fieldValues += this.generateFieldValue(entity, field, 'lorem', 'sentence');
-        } else if (field.type === 'integer') {
+        } else if (type === 'integer') {
           fieldValues += this.generateFieldValue(entity, field, 'random', 'number');
-        } else if (field.type === 'decimal') {
+        } else if (type === 'decimal') {
           fieldValues += this.generateFieldValue(entity, field, 'finance', 'amount');
-        } else if (field.type === 'date') {
+        } else if (type === 'date') {
           fieldValues += this.generateFieldValue(entity, field, 'date', 'past');
-        } else if (field.type === 'boolean') {
+        } else if (type === 'time') {
+          fieldValues += this.generateFieldValue(entity, field, 'time', 'recent');
+        } else if (type === 'boolean') {
           fieldValues += this.generateFieldValue(entity, field, 'random', 'boolean');
         } else {
-          fieldValues += this.generateFieldValue(entity, field, 'fake', '');
+          // DO NOT GENERATE DEFAULT YET FOR UNHANDLED TYPES
+          //fieldValues += this.generateFieldValue(entity, field, 'fake', '');
         }
       }
     });
@@ -940,7 +957,7 @@ class GeneratorController {
     let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
 
     if (category === 'fake') {
-      return `      ${field}: faker.fake(${length}),\n`;
+      //return `      ${field}: faker.fake(${length}),\n`;
     }
 
     let limit = '';
