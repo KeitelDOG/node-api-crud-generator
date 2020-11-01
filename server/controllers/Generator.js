@@ -200,12 +200,17 @@ class GeneratorController {
 
         // default foreign key name, OR provided one
         let fkName = `${this.toTableCase(relEntity.name)}_id`;
-        if (typeof relation === 'object') {
+        if (typeof relation === 'object' && relation.field) {
           // create FK field with object field
           fkName = relation.field;
         }
 
         fieldsCode += `    table.integer('${fkName}').unsigned()`;
+
+        // check for nullable
+        if (typeof relation === 'object' && relation.nullable === false) {
+          fieldsCode += '.notNullable()';
+        }
 
         // check if foreign field is from hasOne
         if (relEntity.hasOwnProperty('relations') && relEntity.relations.hasOne) {
@@ -231,7 +236,7 @@ class GeneratorController {
 
         // default foreign key name, OR provided one
         let fkName = `${this.toTableCase(relEntity.name)}_id`;
-        if (typeof relation === 'object') {
+        if (typeof relation === 'object' && relation.field) {
           // create FK field with object field
           fkName = relation.field;
         }
@@ -392,7 +397,7 @@ class GeneratorController {
 
       fs.writeFileSync(swaggerWritePath, swaggerRendered, { encoding: 'utf-8' });
 
-      // Add Auth Middleare to token check
+      // Add Auth Middleware to token check
       this.generateAutorizationMiddleware();
     }
 
@@ -414,7 +419,7 @@ class GeneratorController {
         parents = entity.relations.belongsTo.map(relation => {
           let relEntity = this.lookupEntity(relation);
           // relation can be string or object
-          if (typeof relation === 'object') {
+          if (typeof relation === 'object' && relation.relation) {
             return `'${relation.relation}'`;
           }
           return `'${this.toCamelCase(relEntity.name)}'`;
@@ -424,7 +429,7 @@ class GeneratorController {
         ones = entity.relations.hasOne.map(relation => {
           let relEntity = this.lookupEntity(relation);
           // relation can be string or object
-          if (typeof relation === 'object') {
+          if (typeof relation === 'object' && relation.relation) {
             return `'${relation.relation}'`;
           }
           return `'${this.toCamelCase(relEntity.name)}'`;
@@ -610,7 +615,7 @@ class GeneratorController {
 
         // default foreign key name, OR provided one
         let fkName = `${this.toTableCase(relEntity.name)}_id`;
-        if (typeof relation === 'object') {
+        if (typeof relation === 'object' && relation.field) {
           // create FK field with object field
           fkName = relation.field;
         }
@@ -718,21 +723,27 @@ class GeneratorController {
     let name = relation;
     if (typeof relation === 'object') {
       name = relation.entity;
-      // template to add custom foreign key
-      readPath = path.join(__dirname, '../../templates/models/RelationFK.mustache');
+      if (relation.field) {
+        // template to add custom foreign key
+        readPath = path.join(__dirname, '../../templates/models/RelationFK.mustache');
+      }
     }
 
     let entity = this.lookupEntity(name);
 
     let relationName;
+    let foreignKey;
+
     let joinTableName;
     let fk1;
     let fk2;
 
     if (relationFunction === 'belongsTo') {
       relationName = this.toCamelCase(entity.name);
+      foreignKey = `${this.toTableCase(entity.name)}_id`;
     } else if (relationFunction === 'hasOne') {
       relationName = this.toCamelCase(entityName);
+      foreignKey = `${this.toTableCase(entity.name)}_id`;
     } else if (relationFunction === 'hasMany') {
       relationName = this.toCamelCase(entity.plural);
     } else if (relationFunction === 'belongsToMany') {
@@ -762,11 +773,11 @@ class GeneratorController {
     // model.belongsTo(Target, [foreignKey], [foreignKeyTarget])
     // model.hasMany(Target, [foreignKey], [foreignKeyTarget])
     // model.hasOne(Target, [foreignKey], [foreignKeyTarget])
-    let foreignKey;
+
     if (typeof relation === 'object') {
       // override relationName if provided
       relationName = relation.relation || relationName;
-      foreignKey = relation.field;
+      foreignKey = relation.field || foreignKey;
     }
 
     return Mustache.render(

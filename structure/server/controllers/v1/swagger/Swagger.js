@@ -120,9 +120,12 @@ class Swagger {
   generateStore(entity) {
     let path = '/' + this.toDashCase(entity.plural);
 
-    let properties = {};
-    let required = [];
+    // add relation foreign key fields (FK) with required
+    let fks = this.getRelationsForeignKeys(entity);
+    let properties = fks.properties;
+    let required = fks.required;
 
+    // add normal fields
     entity.fields.forEach(field => {
       let type = field.type;
       if (type === 'decimal') {
@@ -184,8 +187,10 @@ class Swagger {
   generateUpdate(entity) {
     let path = '/' + this.toDashCase(entity.plural) + '/{id}';
 
-    let properties = {};
-    let required = [];
+    // add relation foreign key fields (FK) with required
+    let fks = this.getRelationsForeignKeys(entity);
+    let properties = fks.properties;
+    let required = fks.required;
 
     entity.fields.forEach(field => {
       let type = field.type;
@@ -377,6 +382,44 @@ class Swagger {
       description: `Relations defined for ${entity.name} separated by comma. ex: ?relations=parent1,parent1.children. ${relText}`,
       required: false,
       schema: { type: 'string' }
+    };
+  }
+
+  getRelationsForeignKeys(entity) {
+    // get relation foreign key fields (FK)
+    let properties = {};
+    let required = [];
+
+    if (entity.hasOwnProperty('relations')) {
+      entity.relations.belongsTo = entity.relations.belongsTo || [];
+      entity.relations.hasOne = entity.relations.hasOne || [];
+
+      let parents = entity.relations.belongsTo.concat(entity.relations.hasOne);
+
+      parents.forEach(relation => {
+        let relEntity = this.lookupEntity(relation);
+
+        // default foreign key name, OR provided one
+        let fkName = `${this.toTableCase(relEntity.name)}_id`;
+        if (typeof relation === 'object') {
+          // create FK field with object field
+          fkName = relation.field;
+
+          if (relation.nullable === false) {
+            required.push(fkName);
+          }
+        }
+
+        properties[fkName] = {
+          type: 'number',
+          //format: 'application/x-www-form-urlencoded'
+        };
+      });
+    }
+
+    return {
+      properties,
+      required
     };
   }
 
