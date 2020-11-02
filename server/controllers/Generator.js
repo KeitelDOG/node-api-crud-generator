@@ -99,6 +99,9 @@ class GeneratorController {
     // Generate API endpoints
     this.generateApi();
 
+    // Generate Swagger Controllers for API Documentation
+    this.generateSwagger();
+
     // Generate Documentation API Documentation
     this.generateApiDocumentation(req);
 
@@ -344,6 +347,8 @@ class GeneratorController {
     let authImport = '';
 
     if (entity.hasOwnProperty('auth')) {
+      console.log('generating auth controller...');
+
       // for controllers import
       authImport = `const Auth = require('./Auth');`;
 
@@ -380,22 +385,6 @@ class GeneratorController {
       let authWritePath = path.join(__dirname, `../../output/${this.projectName}/server/controllers/v1/Auth.js`);
 
       fs.writeFileSync(authWritePath, authRendered, { encoding: 'utf-8' });
-
-      // Save Auth Swagger file
-      let swaggerReadPath = path.join(__dirname, '../../templates/controllers/swagger/Auth.mustache');
-      let swaggerTemplate = fs.readFileSync(swaggerReadPath, { encoding: 'utf-8' });
-
-      let swaggerRendered = Mustache.render(
-        swaggerTemplate,
-        {
-          identification: entity.auth[0],
-          secret: entity.auth[1],
-        }
-      );
-
-      let swaggerWritePath = path.join(__dirname, `../../output/${this.projectName}/server/controllers/v1/swagger/Auth.js`);
-
-      fs.writeFileSync(swaggerWritePath, swaggerRendered, { encoding: 'utf-8' });
 
       // Add Auth Middleware to token check
       this.generateAutorizationMiddleware();
@@ -861,6 +850,88 @@ class GeneratorController {
     fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
   }
 
+  generateSwagger() {
+    console.log('generating Swagger Entities...');
+
+    let readPath = path.join(__dirname, '../../templates/controllers/swagger/index.mustache');
+
+    let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
+    //console.log('template', template);
+
+    // Swagger Controllers declaration
+    let controllers = '';
+    this.entities.forEach(entity => {
+      controllers += this.generateSwaggerDeclaration(entity);
+    });
+
+    // Swagger Controllers instanciation
+    let controllerInstances = '';
+    this.entities.forEach(entity => {
+      controllerInstances += this.generateSwaggerInstance(entity);
+    });
+
+    // Endpoints
+    let endpoints = '';
+    this.entities.forEach(entity => {
+      endpoints += this.generateEndpoints(entity);
+    });
+
+    let rendered = Mustache.render(
+      template,
+      {
+        controllers,
+        controllerInstances,
+      }
+    );
+
+    let writePath = path.join(__dirname, `../../output/${this.projectName}/server/controllers/v1/swagger/index.js`);
+
+    fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
+
+    // Generate Swagger Controllers
+    this.entities.forEach(entity => {
+      this.generateSwaggerController(entity);
+    });
+  }
+
+  generateSwaggerController(entity) {
+    console.log(`generating swagger controller for ${entity.name}...`);
+    if (entity.hasOwnProperty('auth')) {
+      console.log('generating swagger auth controller...');
+      // Save Auth Swagger file
+      let swaggerReadPath = path.join(__dirname, '../../templates/controllers/swagger/Auth.mustache');
+      let swaggerTemplate = fs.readFileSync(swaggerReadPath, { encoding: 'utf-8' });
+
+      let swaggerRendered = Mustache.render(
+        swaggerTemplate,
+        {
+          identification: entity.auth[0],
+          secret: entity.auth[1],
+        }
+      );
+
+      let swaggerWritePath = path.join(__dirname, `../../output/${this.projectName}/server/controllers/v1/swagger/Auth.js`);
+
+      fs.writeFileSync(swaggerWritePath, swaggerRendered, { encoding: 'utf-8' });
+    }
+
+    // For Normal Controller
+    let readPath = path.join(__dirname, '../../templates/controllers/swagger/Controller.mustache');
+
+    let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
+    //console.log('template', template);
+
+    let rendered = Mustache.render(template,
+      {
+        Entity: entity.name,
+      }
+    );
+
+    let writePath = path.join(__dirname, `../../output/${this.projectName}/server/controllers/v1/swagger/${entity.name}.js`);
+
+    fs.writeFileSync(writePath, rendered, { encoding: 'utf-8' });
+  }
+
   generateApiDocumentation(req) {
     console.log('generating API Documentation...');
 
@@ -954,6 +1025,33 @@ class GeneratorController {
         entity: this.toCamelCase(entity.name),
         entityUri: this.toDashCase(entity.plural),
         fields,
+      }
+    );
+  }
+
+  generateSwaggerDeclaration(entity) {
+    let readPath = path.join(__dirname, '../../templates/controllers/swagger/controllerDeclaration.mustache');
+
+    let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
+
+    return Mustache.render(
+      template,
+      {
+        Entity: entity.name,
+      }
+    );
+  }
+
+  generateSwaggerInstance(entity) {
+    let readPath = path.join(__dirname, '../../templates/controllers/swagger/controllerInstance.mustache');
+
+    let template = fs.readFileSync(readPath, { encoding: 'utf-8' });
+
+    return Mustache.render(
+      template,
+      {
+        Entity: entity.name,
+        entity: this.toCamelCase(entity.name),
       }
     );
   }

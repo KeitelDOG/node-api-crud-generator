@@ -1,6 +1,6 @@
 const Swagger = require('./Swagger');
 const Auth = require('./Auth');
-const LocationType = require('./LocationType');
+{{{controllers}}}
 
 
 class Index {
@@ -39,8 +39,7 @@ class Index {
     const swagger = new Swagger(this.crud, this.doc);
     this.doc = swagger.generate();
 
-    const locationType = new LocationType(this.crud, this.doc, this.getEntity('LocationType'));
-    this.doc = locationType.generate();
+    {{{controllerInstances}}}
 
     return this.doc;
   }
