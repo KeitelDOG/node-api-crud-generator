@@ -1,13 +1,12 @@
 const Swagger = require('./Swagger');
 
 class Auth extends Swagger {
-
-  constructor() {
+  constructor () {
     super();
     this.paths = {};
   }
 
-  generate() {
+  generate () {
     return this.paths;
   }
 }

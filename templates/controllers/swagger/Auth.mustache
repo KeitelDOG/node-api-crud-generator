@@ -1,15 +1,14 @@
 const Swagger = require('./Swagger');
 
 class Auth extends Swagger {
-
-  constructor(entity) {
+  constructor (entity) {
     super();
     this.entity = entity;
     this.paths = {};
     this.components = {};
   }
 
-  generate() {
+  generate () {
     this.generateAuth();
     this.generateSignin();
     this.generateSignup();
@@ -17,7 +16,7 @@ class Auth extends Swagger {
     return { paths: this.paths, components: this.components };
   }
 
-  generateAuth() {
+  generateAuth () {
     this.paths['/auth'] = {
       get: {
         operationId: 'auth',
@@ -34,19 +33,19 @@ class Auth extends Swagger {
     };
   }
 
-  generateSignin() {
-    let properties = {
+  generateSignin () {
+    const properties = {
       {{identification}}: {
         description: 'Identification for Authentication',
         type: 'string',
-        required: true,
+        required: true
       },
       {{secret}}: {
         description: 'Secret code for Authentication',
         type: 'string',
         format: '{{secret}}',
-        required: true,
-      },
+        required: true
+      }
     };
 
     this.paths['/signin'] = {
@@ -81,9 +80,9 @@ class Auth extends Swagger {
     };
   }
 
-  generateSignup() {
-    let properties = {};
-    let required = [];
+  generateSignup () {
+    const properties = {};
+    const required = [];
 
     this.entity.fields.forEach(field => {
       let type = field.type;
@@ -132,7 +131,7 @@ class Auth extends Swagger {
     };
   }
 
-  generateComponents() {
+  generateComponents () {
     this.components = {
       securitySchemes: {
         jwt: {

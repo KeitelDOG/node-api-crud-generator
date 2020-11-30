@@ -1,9 +1,9 @@
-var express = require('express');
-var router = express.Router();
-const multer = require('multer');
+const express = require('express');
+const router = express.Router();
+// const multer = require('multer');
 
 // token authorization
-const { verifyToken } = require('../../../middlewares/authorization');
+// const { verifyToken } = require('../../../middlewares/authorization');
 
 // Declare Controllers
 // Auth Controller
@@ -14,8 +14,7 @@ const TestController = require('../../../controllers/v2/Test');
 // Instanciate Controllers
 const test = new TestController();
 
-
-router.get('/', function(req, res) {
+router.get('/', function (req, res) {
   console.log('Main App API v2');
   res
     .status(200)
@@ -26,6 +25,5 @@ router.get('/', function(req, res) {
 
 // endpoint for testing API Flow with Versions, should return api version 2
 router.get('/tests', test.check.bind(test));
-
 
 module.exports = router;

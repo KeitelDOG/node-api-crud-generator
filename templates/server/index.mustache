@@ -21,7 +21,7 @@ app.use(express.static(path.join(__dirname, '../server/api-docs')));
 Scheduler.start();
 
 app.get('/', function(req, res) {
-  //console.log('Megalobiz Main App server home');
+  //  console.log('{{app}} Main App server home');
   res.status(200)
     .send({
       server: '{{app}}',

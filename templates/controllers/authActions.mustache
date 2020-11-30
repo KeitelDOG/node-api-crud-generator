@@ -1,10 +1,10 @@
 
-  insert(req, res) {
-    let data = req.body;
+  insert (req, res) {
+    const data = req.body;
 
     Auth.hashPass(data.{{secret}}, ({{secret}})=>{
       data.{{secret}} = {{secret}};
-      const model = new this.model();
+      const model = new this.Model();
       model.insert(data, (error, {{entity}})  => {
         if (error) {
           res.status(403).send({
@@ -18,13 +18,13 @@
     });
   };
 
-  update(req, res) {
+  update (req, res) {
     // remove {{secret}} and {{identification}} for body here
-    let data = req.body;
+    const data = req.body;
     delete data.{{secret}};
     delete data.{{identification}};
 
-    const model = new this.model();
+    const model = new this.Model();
     model.update(req.params.id, data, (error, result) => {
       if (error) {
         res.status(400).send({ message: "Error can't update {{entity}}" });

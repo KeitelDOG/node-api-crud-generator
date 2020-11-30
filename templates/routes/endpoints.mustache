@@ -4,4 +4,3 @@ router.get('/{{entityUri}}/:id', verifyToken, {{entity}}.find.bind({{entity}}));
 router.post('/{{entityUri}}', verifyToken, {{entity}}.insert.bind({{entity}}));
 router.put('/{{entityUri}}/:id', verifyToken, {{entity}}.update.bind({{entity}}));
 router.delete('/{{entityUri}}/:id', verifyToken, {{entity}}.delete.bind({{entity}}));
-

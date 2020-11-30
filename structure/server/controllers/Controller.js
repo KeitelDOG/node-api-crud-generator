@@ -1,17 +1,16 @@
 const fs = require('fs');
 
 class Controller {
-
-  constructor() {
-    this.attribs;
-    this.sort;
-    this.where;
+  constructor () {
+    this.attribs = null;
+    this.sort = [];
+    this.where = [];
   }
 
-  all(req, res, next) {
+  all (req, res, next) {
     this.attribs = this.attribs || {};
     // uncomment to debug
-    //this.attribs.debug = true;
+    // this.attribs.debug = true;
 
     this.applyRelations(req.query);
     this.applyWhere(req.query);
@@ -19,7 +18,7 @@ class Controller {
     this.applyLimit(req.query);
     this.applySort(req.query);
 
-    new this.model().query(qb => {
+    new this.Model().query(qb => {
       // where
       this.where.forEach(({ column, operand, value }) => {
         if (value !== null) {
@@ -40,34 +39,34 @@ class Controller {
       .then(results => {
         res.status(200).send({
           models: results.models,
-          pagination: results.pagination,
+          pagination: results.pagination
         });
       })
       .catch(error => {
-        let details = this.getErrorDetails(error);
+        const details = this.getErrorDetails(error);
         res.status(400).send({
           message: 'Could not fetch the models from the server',
-          error: details,
+          error: details
         });
       });
   }
 
-  find(req, res, next) {
+  find (req, res, next) {
     this.attribs = this.attribs || {};
     // uncomment to debug
-    //this.attribs.debug = true;
+    // this.attribs.debug = true;
 
     this.applyRelations(req.query);
 
-    let id = req.params.id;
+    const id = req.params.id;
 
-    new this.model({ id })
+    new this.Model({ id })
       .fetch(this.attribs)
       .then((model) => {
         res.status(200).send(model);
       })
       .catch(error => {
-        let details = this.getErrorDetails(error);
+        const details = this.getErrorDetails(error);
         res.status(400).send({
           message: 'Could not retrieve the model from the server',
           error: details
@@ -75,20 +74,20 @@ class Controller {
       });
   };
 
-  insert(req, res) {
-    let data = req.body;
+  insert (req, res) {
+    const data = req.body;
 
     // this handle multiple files upload
     // but ONLY 1 file for each field will be used
-    if(req.files) {
+    if (req.files) {
       // put each filename into corresponding field name
       Object.keys(req.files).forEach(key => {
-        let file = req.files[key][0];
+        const file = req.files[key][0];
         data[file.fieldname] = file.filename;
       });
     }
 
-    new this.model()
+    new this.Model()
       .save(data, { method: 'insert' })
       .then((result) => {
         res.status(201).send(result);
@@ -97,24 +96,24 @@ class Controller {
         // unlink the files on error
         if (req.files) {
           Object.keys(req.files).forEach(key => {
-            let file = req.files[key][0];
+            const file = req.files[key][0];
             fs.unlinkSync(file.path);
           });
         }
 
-        let details = this.getErrorDetails(error);
+        const details = this.getErrorDetails(error);
         res.status(400).send({
           message: 'Could not insert model',
-          error: details,
+          error: details
         });
       });
   };
 
-  update(req, res) {
-    let id = req.params.id;
-    let data = req.body;
+  update (req, res) {
+    const id = req.params.id;
+    const data = req.body;
 
-    new this.model({ id })
+    new this.Model({ id })
       .save(data, { patch: true })
       .then((result) => {
         // Remove old files if any when using multer files upload
@@ -130,47 +129,47 @@ class Controller {
         // unlink the files on error
         if (req.files) {
           Object.keys(req.files).forEach(key => {
-            let file = req.files[key][0];
+            const file = req.files[key][0];
             fs.unlinkSync(file.path);
           });
         }
 
-        let details = this.getErrorDetails(error);
+        const details = this.getErrorDetails(error);
         res.status(400).send({
           message: 'Could not update model',
-          error: details,
+          error: details
         });
       });
   };
 
-  delete(req, res) {
-    let id = req.params.id;
+  delete (req, res) {
+    const id = req.params.id;
 
-    new this.model({ id })
+    new this.Model({ id })
       .destroy()
       .then((model) => {
         res.status(201).send({ message: 'Model deleted' });
       })
       .catch(error => {
-        let details = this.getErrorDetails(error);
+        const details = this.getErrorDetails(error);
         res.status(400).send({
           message: 'Could not delete the model',
-          error: details,
+          error: details
         });
       });
   };
 
-  applyWhere(query) {
+  applyWhere (query) {
     this.where = [];
-    if(!query.where) {
+    if (!query.where) {
       return;
     }
 
     // Multiple sorting, support only Where... AND... , but not OR yet
     // ?where=first_name[.]=[.]Keitel,last_name[.]like[.]Jovin
-    let parts = query.where.split('[,]');
+    const parts = query.where.split('[,]');
     parts.forEach(part => {
-      let trio = part.split('[.]');
+      const trio = part.split('[.]');
       if (trio.length === 3) {
         this.where.push({
           column: trio[0],
@@ -182,23 +181,23 @@ class Controller {
         this.where.push({
           column: trio[0],
           operand: trio[1],
-          value: null,
+          value: null
         });
       }
     });
   }
 
-  applySort(query) {
+  applySort (query) {
     this.sort = [];
-    if(!query.sort) {
+    if (!query.sort) {
       return;
     }
 
     // Multiple sorting
     // ?sort=first_name.desc,last_name.desc
-    let parts = query.sort.split(',');
+    const parts = query.sort.split(',');
     parts.forEach(part => {
-      let kv = part.split('.');
+      const kv = part.split('.');
       if (kv.length > 1) {
         this.sort.push({
           column: kv[0],
@@ -208,7 +207,7 @@ class Controller {
     });
   }
 
-  applyPage(query, attribs) {
+  applyPage (query, attribs) {
     this.page = query.page || 1;
     this.pageSize = query.pageSize || 20;
 
@@ -216,7 +215,7 @@ class Controller {
     this.attribs.pageSize = this.pageSize;
   }
 
-  applyLimit(query, attribs) {
+  applyLimit (query, attribs) {
     if (query.limit || query.offset) {
       this.limit = query.limit || 20;
       this.offset = query.offset || 0;
@@ -226,8 +225,8 @@ class Controller {
     }
   }
 
-  applyRelations(query) {
-    if(!query.relations) {
+  applyRelations (query) {
+    if (!query.relations) {
       return;
     }
 
@@ -239,15 +238,15 @@ class Controller {
 
     // Cascade Relation support
     // ?relations=user,posts.comments
-    let relations = query.relations.split(',');
+    const relations = query.relations.split(',');
     relations.forEach(relation => {
       this.attribs.withRelated = this.attribs.withRelated || [];
       this.attribs.withRelated.push(relation);
     });
   }
 
-  getErrorDetails(error) {
-    let details = {};
+  getErrorDetails (error) {
+    const details = {};
     if (error.message) {
       details.message = error.message;
       details.stack = error.stack;

@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const swaggerUi = require('swagger-ui-express');
 
-var options = {
+const options = {
   explorer: true,
   swaggerOptions: {
     urls: [
