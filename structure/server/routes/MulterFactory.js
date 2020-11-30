@@ -7,14 +7,14 @@ const MulterFactory = {
     const storage = multer.diskStorage({
       destination: (req, file, cb) => {
         // create directory if not exist
-        let dir = `public/files/${groupDir}/${entity}`;
-        fs.ensureDirSync(dir)
+        const dir = `public/files/${entity}`;
+        fs.ensureDirSync(dir);
         cb(null, dir);
       },
       filename: (req, file, cb) => {
-        let ext = file.originalname.split('.').slice(-1)[0];
+        const ext = file.originalname.split('.').slice(-1)[0];
         const name = `${file.fieldname}-${Date.now().toString()}.${ext}`;
-        cb(null,  name);
+        cb(null, name);
       }
     });
 

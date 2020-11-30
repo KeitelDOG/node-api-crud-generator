@@ -1,3 +1,4 @@
+/* eslint-disable keyword-spacing */
 /*
   SWAGGER Info ----
   param schema type:
@@ -12,23 +13,22 @@
 */
 
 class Swagger {
-
-  constructor(crud, doc) {
+  constructor (crud, doc) {
     this.crud = crud;
     this.doc = doc;
   }
 
-  generate() {
+  generate () {
     this.generateBase();
     // add and call other methods here to generate more stuffs
     return this.doc;
   }
 
-  generateBase() {
+  generateBase () {
     // DO NOT OVERWRITE PATHS in (this.doc.paths)
     this.doc = {
       ...this.doc,
-      openapi:'3.0.0',
+      openapi: '3.0.0',
       info: {
         title: `${this.crud.app} API Documentation`,
         description: `${this.crud.app} Application Programming Interface (API) Documentation`,
@@ -43,17 +43,17 @@ class Swagger {
       },
       servers: [
         {
-          'url':'/api/v1',
-          'description':`${this.crud.app} API version 1`
+          url: '/api/v1',
+          description: `${this.crud.app} API version 1`
         }
-      ],
+      ]
     }
   }
 
-  generateIndex() {
-    let path = '/' + this.toDashCase(this.entity.plural);
+  generateIndex () {
+    const path = '/' + this.toDashCase(this.entity.plural);
 
-    let endpoint = {
+    const endpoint = {
       get: {
         operationId: `all${this.entity.name}`,
         tags: [this.entity.name],
@@ -61,7 +61,7 @@ class Swagger {
         description: `Retrieve a list of ${this.entity.plural} with limit, offset, sorting, fitlering and relations. List of fields: [${this.entity.fields.map(field => field.name).concat(['id', 'created_at', 'updated_at']).join(', ')}]`,
         parameters: this.getIndexParameters(),
         responses: this.getResponses(),
-        security:[
+        security: [
           {
             jwt: []
           }
@@ -75,10 +75,10 @@ class Swagger {
     };
   }
 
-  generateFind() {
-    let path = '/' + this.toDashCase(this.entity.plural) + '/{id}';
+  generateFind () {
+    const path = '/' + this.toDashCase(this.entity.plural) + '/{id}';
 
-    let endpoint = {
+    const endpoint = {
       get: {
         operationId: `find${this.entity.name}`,
         tags: [this.entity.name],
@@ -95,7 +95,7 @@ class Swagger {
           },
           this.getRelationsDefinition(this.entity)
         ],
-        security:[
+        security: [
           {
             jwt: []
           }
@@ -109,13 +109,13 @@ class Swagger {
     };
   }
 
-  generateStore() {
-    let path = '/' + this.toDashCase(this.entity.plural);
+  generateStore () {
+    const path = '/' + this.toDashCase(this.entity.plural);
 
     // add relation foreign key fields (FK) with required
-    let fks = this.getRelationsForeignKeys(this.entity);
-    let properties = fks.properties;
-    let required = fks.required;
+    const fks = this.getRelationsForeignKeys(this.entity);
+    const properties = fks.properties;
+    const required = fks.required;
 
     // add normal fields
     this.entity.fields.forEach(field => {
@@ -125,8 +125,8 @@ class Swagger {
       }
 
       properties[field.name] = {
-        type,
-        //format: 'application/x-www-form-urlencoded'
+        type
+        // format: 'application/x-www-form-urlencoded'
       };
 
       if (field.nullable === false) {
@@ -134,7 +134,7 @@ class Swagger {
       }
     });
 
-    let endpoint = {
+    const endpoint = {
       post: {
         operationId: `store${this.entity.name}`,
         tags: [this.entity.name],
@@ -162,7 +162,7 @@ class Swagger {
             }
           }
         },
-        security:[
+        security: [
           {
             jwt: []
           }
@@ -176,13 +176,13 @@ class Swagger {
     };
   }
 
-  generateUpdate() {
-    let path = '/' + this.toDashCase(this.entity.plural) + '/{id}';
+  generateUpdate () {
+    const path = '/' + this.toDashCase(this.entity.plural) + '/{id}';
 
     // add relation foreign key fields (FK) with required
-    let fks = this.getRelationsForeignKeys(this.entity);
-    let properties = fks.properties;
-    let required = fks.required;
+    const fks = this.getRelationsForeignKeys(this.entity);
+    const properties = fks.properties;
+    const required = fks.required;
 
     this.entity.fields.forEach(field => {
       let type = field.type;
@@ -191,8 +191,8 @@ class Swagger {
       }
 
       properties[field.name] = {
-        type,
-        //format: 'application/x-www-form-urlencoded'
+        type
+        // format: 'application/x-www-form-urlencoded'
       };
 
       if (field.nullable === false) {
@@ -200,7 +200,7 @@ class Swagger {
       }
     });
 
-    let endpoint = {
+    const endpoint = {
       put: {
         operationId: `update${this.entity.name}`,
         tags: [this.entity.name],
@@ -237,7 +237,7 @@ class Swagger {
             }
           }
         },
-        security:[
+        security: [
           {
             jwt: []
           }
@@ -251,10 +251,10 @@ class Swagger {
     };
   }
 
-  generateDelete() {
-    let path = '/' + this.toDashCase(this.entity.plural) + '/{id}';
+  generateDelete () {
+    const path = '/' + this.toDashCase(this.entity.plural) + '/{id}';
 
-    let endpoint = {
+    const endpoint = {
       delete: {
         operationId: `delete${this.entity.name}`,
         tags: [this.entity.name],
@@ -268,7 +268,7 @@ class Swagger {
           required: true,
           schema: { type: 'integer' }
         },
-        security:[
+        security: [
           {
             jwt: []
           }
@@ -282,8 +282,8 @@ class Swagger {
     };
   }
 
-  getIndexParameters() {
-    let params = [];
+  getIndexParameters () {
+    const params = [];
 
     // offset
     params.push({
@@ -325,34 +325,33 @@ class Swagger {
       schema: { type: 'string' }
     });
 
-
     return params;
   }
 
-  getRelationsDefinition() {
+  getRelationsDefinition () {
     // generate relations syntax
-    let ones = [];
-    let manys = [];
-    let manyToManys = [];
+    const ones = [];
+    const manys = [];
+    const manyToManys = [];
 
     if (this.entity.relations.belongsTo) {
       this.entity.relations.belongsTo.forEach(relation => {
-        let relEntity = this.lookupEntity(relation);
-        let relationName = this.toCamelCase(relEntity.name);
+        const relEntity = this.lookupEntity(relation);
+        const relationName = this.toCamelCase(relEntity.name);
         ones.push(relationName);
       });
     }
     if (this.entity.relations.hasMany) {
       this.entity.relations.hasMany.forEach(relation => {
-        let relEntity = this.lookupEntity(relation);
-        let relationName = this.toCamelCase(relEntity.plural);
+        const relEntity = this.lookupEntity(relation);
+        const relationName = this.toCamelCase(relEntity.plural);
         manys.push(relationName);
       });
     }
     if (this.entity.relations.belongsToMany) {
       this.entity.relations.belongsToMany.forEach(objRelation => {
-        let relEntity = this.lookupEntity(objRelation.entity);
-        let relationName = 'many' + relEntity.plural;
+        const relEntity = this.lookupEntity(objRelation.entity);
+        const relationName = 'many' + relEntity.plural;
         manyToManys.push(relationName);
       });
     }
@@ -377,19 +376,19 @@ class Swagger {
     };
   }
 
-  getRelationsForeignKeys() {
+  getRelationsForeignKeys () {
     // get relation foreign key fields (FK)
-    let properties = {};
-    let required = [];
+    const properties = {};
+    const required = [];
 
-    if (this.entity.hasOwnProperty('relations')) {
+    if (Object.prototype.hasOwnProperty.call(this.entity, 'auth')) {
       this.entity.relations.belongsTo = this.entity.relations.belongsTo || [];
       this.entity.relations.hasOne = this.entity.relations.hasOne || [];
 
-      let parents = this.entity.relations.belongsTo.concat(this.entity.relations.hasOne);
+      const parents = this.entity.relations.belongsTo.concat(this.entity.relations.hasOne);
 
       parents.forEach(relation => {
-        let relEntity = this.lookupEntity(relation);
+        const relEntity = this.lookupEntity(relation);
 
         // default foreign key name, OR provided one
         let fkName = `${this.toTableCase(relEntity.name)}_id`;
@@ -403,8 +402,8 @@ class Swagger {
         }
 
         properties[fkName] = {
-          type: 'number',
-          //format: 'application/x-www-form-urlencoded'
+          type: 'number'
+          // format: 'application/x-www-form-urlencoded'
         };
       });
     }
@@ -415,8 +414,8 @@ class Swagger {
     };
   }
 
-  getResponses(withResource = false) {
-    let responses = {
+  getResponses (withResource = false) {
+    const responses = {
       200: {
         description: 'successful operation',
         content: { 'application/json': [] }
@@ -432,7 +431,7 @@ class Swagger {
       }
     };
 
-    if(withResource) {
+    if (withResource) {
       responses[404] = {
         description: 'resource not found'
       }
@@ -441,14 +440,14 @@ class Swagger {
     return responses;
   }
 
-  lookupEntity(entity) {
+  lookupEntity (entity) {
     // entity (relation) can be string or object
     let name = entity;
     if (typeof entity === 'object') {
       name = entity.entity;
     }
 
-    let filtered = this.crud.entities.filter(entity => {
+    const filtered = this.crud.entities.filter(entity => {
       return entity.name === name;
     });
 
@@ -459,7 +458,7 @@ class Swagger {
     return filtered[0];
   }
 
-  toTableCase(string) {
+  toTableCase (string) {
     return string.split('').reduce((acc, letter, ind) => {
       if (letter === letter.toLowerCase() || ind === 0) {
         return acc + letter.toLowerCase();
@@ -469,7 +468,7 @@ class Swagger {
     }, '');
   }
 
-  toDashCase(string) {
+  toDashCase (string) {
     return string.split('').reduce((acc, letter, ind) => {
       if (letter === letter.toLowerCase() || ind === 0) {
         return acc + letter.toLowerCase();
@@ -479,10 +478,9 @@ class Swagger {
     }, '');
   }
 
-  toCamelCase(string) {
+  toCamelCase (string) {
     return string[0].toLowerCase() + string.slice(1);
   }
-
 }
 
 module.exports = Swagger;

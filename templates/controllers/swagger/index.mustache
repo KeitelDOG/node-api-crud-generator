@@ -2,28 +2,27 @@ const Swagger = require('./Swagger');
 const Auth = require('./Auth');
 {{{controllers}}}
 
-
 class Index {
 
-  constructor(crud, doc) {
+  constructor (crud, doc) {
     this.crud = crud;
     this.doc = doc;
   }
 
-  generate() {
+  generate () {
     this.doc = {
       paths: {}
     };
 
     // auth endpoints (Auth doc will be empty if not using authentication)
     // retrieve Auth entity
-    let entities = this.crud.entities.filter(ent => {
-      return ent.hasOwnProperty('auth');
+    const entities = this.crud.entities.filter(ent => {
+      return Object.prototype.hasOwnProperty.call(ent, 'auth');
     });
 
     if (entities.length) {
       const auth = new Auth(entities[0]);
-      let data = auth.generate();
+      const data = auth.generate();
       this.doc.paths = {
         ...this.doc.paths,
         ...data.paths,
@@ -44,7 +43,7 @@ class Index {
     return this.doc;
   }
 
-  getEntity(entityName) {
+  getEntity (entityName) {
     return this.crud.entities.filter(entity => {
       return entity.name === entityName;
     })[0];

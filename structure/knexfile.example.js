@@ -8,7 +8,7 @@ module.exports = {
       port: 3306,
       database: 'project',
       user: 'root',
-      password: 'FILL_ME',
+      password: 'FILL_ME'
     },
     pool: {
       min: 2,
@@ -16,10 +16,10 @@ module.exports = {
     },
     migrations: {
       tableName: 'knex_migrations',
-      directory: 'database/migrations',
+      directory: 'database/migrations'
     },
     seeds: {
-      directory: 'database/seeds',
-    },
-  },
+      directory: 'database/seeds'
+    }
+  }
 };

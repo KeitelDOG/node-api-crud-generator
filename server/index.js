@@ -1,5 +1,4 @@
 const express = require('express');
-const path = require('path');
 const GeneratorController = require('./controllers/Generator');
 
 const port = process.env.APP_PORT || 3600;
@@ -7,9 +6,9 @@ const port = process.env.APP_PORT || 3600;
 const app = express();
 
 // controllers
-let generator = new GeneratorController();
+const generator = new GeneratorController();
 
-app.get('/', function(req, res) {
+app.get('/', function (req, res) {
   console.log('API CRUD Generator Server home');
   res.status(200)
     .send({
@@ -18,9 +17,8 @@ app.get('/', function(req, res) {
     });
 });
 
-
 app.get('/generators/generate/:project', generator.generate.bind(generator));
 
-app.listen(port, function() {
+app.listen(port, function () {
   console.log(`API CRUD Generator Server is listening to port ${port}`);
 });

@@ -12,7 +12,7 @@
 */
 
 const schedule = require('node-schedule');
-const axios = require('axios');
+// const axios = require('axios');
 
 // test with each minute:
 // */1 * * * *
@@ -23,15 +23,12 @@ const axios = require('axios');
 // every hour at minute 30:
 // 30 */1 * * *
 
-
 exports.start = () => {
   console.log('start scheduler');
 
-  var testSchedule = schedule.scheduleJob('*/1 * * * *', function() {
-    //exports.runTest();
+  schedule.scheduleJob('*/1 * * * *', function () {
+    //  exports.runTest();
   });
-
-
 };
 
 exports.runTest = () => {

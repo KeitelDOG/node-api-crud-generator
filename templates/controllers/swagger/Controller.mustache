@@ -1,15 +1,14 @@
 const Swagger = require('./Swagger');
 
 class {{Entity}} extends Swagger {
-
-  constructor(crud, doc, entity) {
+  constructor (crud, doc, entity) {
     super();
     this.crud = crud;
     this.entity = entity;
     this.doc = doc;
   }
 
-  generate() {
+  generate () {
     // remove or add methods to update endpoint documentation
     // those methods are called from parent class: Swagger
     this.generateIndex();
@@ -20,7 +19,6 @@ class {{Entity}} extends Swagger {
 
     return this.doc;
   }
-
 }
 
 module.exports = {{Entity}};
