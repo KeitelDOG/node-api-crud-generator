@@ -5,3 +5,8 @@
 !cool-project/*
 !cool-project/entities
 !cool-project/entities/*
+
+!drug-api
+!drug-api/*
+!drug-api/entities
+!drug-api/entities/*

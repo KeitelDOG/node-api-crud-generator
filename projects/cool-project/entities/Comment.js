@@ -8,8 +8,8 @@ module.exports = {
       type: 'string',
       length: 4000,
       nullable: false,
-      faker: 'lorem.sentence',
-    },
+      faker: 'lorem.sentence'
+    }
   ],
   relations: {
     belongsTo: [
@@ -19,11 +19,11 @@ module.exports = {
       {
         entity: 'Post',
         relation: 'myPost',
-        field: 'comment_fk',
+        field: 'comment_fk'
       }
     ], // User: owner
     belongsToMany: [
-      { entity: 'User' }, // User: mentioned users
-    ],
+      { entity: 'User' } // User: mentioned users
+    ]
   }
 };
