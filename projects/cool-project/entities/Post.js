@@ -7,22 +7,22 @@ module.exports = {
       name: 'details',
       type: 'string',
       length: 4000,
-      faker: 'lorem.sentence',
+      faker: 'lorem.sentence'
     },
     {
       name: 'picture_1',
       type: 'string',
       length: 255,
       faker: 'image.imageUrl',
-      file: true,
+      file: true
     },
     {
       name: 'picture_2',
       type: 'string',
       length: 255,
       faker: 'image.imageUrl',
-      file: true,
-    },
+      file: true
+    }
   ],
   relations: {
     belongsTo: ['User', 'Post'], // User: owner, Post: original post
@@ -30,12 +30,12 @@ module.exports = {
       {
         entity: 'Comment',
         relation: 'myComments',
-        field: 'comment_fk',
+        field: 'comment_fk'
       },
-      'Post', // Post: shares (can bu null)
+      'Post' // Post: shares (can bu null)
     ],
     belongsToMany: [
-      { entity: 'User' }, // User: mentioned users
-    ],
+      { entity: 'User' } // User: mentioned users
+    ]
   }
 };

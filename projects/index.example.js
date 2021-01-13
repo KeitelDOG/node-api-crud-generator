@@ -1,11 +1,13 @@
 const coolProject = require('./cool-project');
-//const megalobiz = require('./megalobiz');
+const drugApi = require('./drug-api');
+// const megalobiz = require('./megalobiz');
 
-// KEYS must be the same as URI part
+// KEYS must be the same as directory (URI part)
 // ex:
 // URI: generate/cool-project
 // KEY: cool-project
 module.exports = {
   'cool-project': coolProject,
-  //megalobiz,
+  'drug-api': drugApi
+  // megalobiz,
 };

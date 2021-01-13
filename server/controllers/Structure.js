@@ -7,6 +7,7 @@ class StructureController extends BaseController {
   generate () {
     this.generateStatics();
     this.generateServerIndex();
+    this.generatePackage();
   }
 
   generateStatics () {
