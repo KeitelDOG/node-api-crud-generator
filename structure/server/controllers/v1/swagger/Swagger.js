@@ -16,6 +16,25 @@ class Swagger {
   constructor (crud, doc) {
     this.crud = crud;
     this.doc = doc;
+    this.allowFields = [];
+    this.denyFields = [];
+    this.required = [];
+    this.types = {
+      tinyint: 'integer',
+      smallint: 'integer',
+      mediumint: 'integer',
+      int: 'integer',
+      integer: 'integer',
+      decimal: 'number',
+      bigint: 'integer',
+      string: 'string',
+      varchar: 'string',
+      char: 'string',
+      date: 'string',
+      datetime: 'string',
+      time: 'string',
+      boolean: 'boolean'
+    };
   }
 
   generate () {
@@ -52,13 +71,20 @@ class Swagger {
 
   generateIndex () {
     const path = '/' + this.toDashCase(this.entity.plural);
+    // add relation foreign key fields (FK) with required
+    const fks = this.getRelationsForeignKeys();
+
+    let fields = ['id'];
+    fields = fields.concat(Object.keys(fks.properties));
+    fields = fields.concat(this.entity.fields.map(field => field.name));
+    fields = fields.concat(['created_at', 'updated_at']);
 
     const endpoint = {
       get: {
         operationId: `all${this.entity.name}`,
         tags: [this.entity.name],
         summary: `Get list of ${this.entity.plural}`,
-        description: `Retrieve a list of ${this.entity.plural} with limit, offset, sorting, fitlering and relations. List of fields: [${this.entity.fields.map(field => field.name).concat(['id', 'created_at', 'updated_at']).join(', ')}]`,
+        description: `Retrieve a list of ${this.entity.plural} with limit, offset, sorting, fitlering and relations. List of fields: [${fields.join(', ')}]`,
         parameters: this.getIndexParameters(),
         responses: this.getResponses(),
         security: [
@@ -113,16 +139,15 @@ class Swagger {
     const path = '/' + this.toDashCase(this.entity.plural);
 
     // add relation foreign key fields (FK) with required
-    const fks = this.getRelationsForeignKeys(this.entity);
+    const fks = this.getRelationsForeignKeys();
     const properties = fks.properties;
-    const required = fks.required;
+
+    const allow = this.allowFields.join(',');
+    const deny = this.denyFields.join(',');
 
     // add normal fields
     this.entity.fields.forEach(field => {
-      let type = field.type;
-      if (type === 'decimal') {
-        type = 'number'
-      }
+      const type = this.types[field.type];
 
       properties[field.name] = {
         type
@@ -130,7 +155,18 @@ class Swagger {
       };
 
       if (field.nullable === false) {
-        required.push(field.name);
+        this.required.push(field.name);
+      }
+    });
+
+    // filter fields in allow or deny
+    Object.keys(properties).forEach(key => {
+      if (allow && !allow.includes(key)) {
+        // skip if field is not in allow list
+        delete properties[key];
+      } else if (deny && deny.includes(key)) {
+        // skip if field is in deny list
+        delete properties[key];
       }
     });
 
@@ -147,7 +183,7 @@ class Swagger {
             'application/json': {
               schema: {
                 description: 'JSON string containing info for ' + this.entity.name,
-                required,
+                required: this.required,
                 type: 'object',
                 properties
               }
@@ -155,7 +191,7 @@ class Swagger {
             'application/x-www-form-urlencoded': {
               schema: {
                 description: 'JSON string containing info for ' + this.entity.name,
-                required,
+                required: this.required,
                 type: 'object',
                 properties
               }
@@ -180,15 +216,15 @@ class Swagger {
     const path = '/' + this.toDashCase(this.entity.plural) + '/{id}';
 
     // add relation foreign key fields (FK) with required
-    const fks = this.getRelationsForeignKeys(this.entity);
+    const fks = this.getRelationsForeignKeys();
     const properties = fks.properties;
-    const required = fks.required;
 
+    const allow = this.allowFields.join(',');
+    const deny = this.denyFields.join(',');
+
+    // add normal fields
     this.entity.fields.forEach(field => {
-      let type = field.type;
-      if (type === 'decimal') {
-        type = 'number'
-      }
+      const type = this.types[field.type];
 
       properties[field.name] = {
         type
@@ -196,7 +232,18 @@ class Swagger {
       };
 
       if (field.nullable === false) {
-        required.push(field.name);
+        this.required.push(field.name);
+      }
+    });
+
+    // filter fields in allow or deny
+    Object.keys(properties).forEach(key => {
+      if (allow && !allow.includes(key)) {
+        // skip if field is not in allow list
+        delete properties[key];
+      } else if (deny && deny.includes(key)) {
+        // skip if field is in deny list
+        delete properties[key];
       }
     });
 
@@ -222,7 +269,7 @@ class Swagger {
             'application/json': {
               schema: {
                 description: 'JSON string containing info for ' + this.entity.name,
-                required,
+                required: this.required,
                 type: 'object',
                 properties
               }
@@ -230,7 +277,7 @@ class Swagger {
             'application/x-www-form-urlencoded': {
               schema: {
                 description: 'JSON string containing info for ' + this.entity.name,
-                required,
+                required: this.required,
                 type: 'object',
                 properties
               }
@@ -379,9 +426,8 @@ class Swagger {
   getRelationsForeignKeys () {
     // get relation foreign key fields (FK)
     const properties = {};
-    const required = [];
 
-    if (Object.prototype.hasOwnProperty.call(this.entity, 'auth')) {
+    if (Object.prototype.hasOwnProperty.call(this.entity, 'relations')) {
       this.entity.relations.belongsTo = this.entity.relations.belongsTo || [];
       this.entity.relations.hasOne = this.entity.relations.hasOne || [];
 
@@ -397,7 +443,7 @@ class Swagger {
           fkName = relation.field;
 
           if (relation.nullable === false) {
-            required.push(fkName);
+            this.required.push(fkName);
           }
         }
 
@@ -409,8 +455,7 @@ class Swagger {
     }
 
     return {
-      properties,
-      required
+      properties
     };
   }
 
