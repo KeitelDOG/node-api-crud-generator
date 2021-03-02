@@ -136,7 +136,7 @@ class SeedController extends BaseController {
     // Many-To-Many foreign fields
     if (entity.relations.belongsToMany) {
       entity.relations.belongsToMany.forEach(relation => {
-        const relEntity = this.lookupEntity(relation.entity);
+        const relEntity = this.lookupEntity(relation);
         this.generateManySeed(entity, relEntity, relation);
       });
     }
