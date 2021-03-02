@@ -397,7 +397,7 @@ class Swagger {
     }
     if (this.entity.relations.belongsToMany) {
       this.entity.relations.belongsToMany.forEach(objRelation => {
-        const relEntity = this.lookupEntity(objRelation.entity);
+        const relEntity = this.lookupEntity(objRelation);
         const relationName = 'many' + relEntity.plural;
         manyToManys.push(relationName);
       });

@@ -181,7 +181,7 @@ class MigrationController extends BaseController {
     */
     if (entity.relations.belongsToMany) {
       entity.relations.belongsToMany.forEach(relation => {
-        const relEntity = this.lookupEntity(relation.entity);
+        const relEntity = this.lookupEntity(relation);
         this.generateManyMigration(entity, relEntity, relation);
       });
     }
